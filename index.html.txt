@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Bro's Pizza & Kebap – Online Bestellen (8462 Gamlitz)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #111111;
+      color: #ffffff;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes pulse-border {
+      0%, 100% { border-color: #e63946; box-shadow: 0 0 18px rgba(230, 57, 70, 0.6); }
+      50% { border-color: #ffb703; box-shadow: 0 0 28px rgba(255, 183, 3, 0.9); }
+    }
+    .new-order-card { animation: pulse-border 1.2s infinite; }
+  </style>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Bro's Pizza" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%23e63946'/><text x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' fill='white' font-family='system-ui, sans-serif' font-weight='900' font-size='44'>BRO'S</text><text x='50%25' y='76%25' dominant-baseline='central' text-anchor='middle' fill='%23ffb703' font-family='system-ui, sans-serif' font-weight='800' font-size='18'>PIZZA &amp; KEBAP</text></svg>" />
+
+</head>
+<body class="min-h-screen pb-28">
+
+  <!-- TOP DEMO BAR & HEADER -->
+  <header class="sticky top-0 z-40 bg-[#161616]/95 backdrop-blur border-b border-neutral-800">
+    <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-[#e63946] flex items-center justify-center font-black text-xl tracking-tighter shadow-lg shadow-[#e63946]/30">
+          BRO'S
+        </div>
+        <div>
+          <h1 class="font-bold text-base leading-tight flex items-center gap-1.5">
+            Bro's Pizza & Kebap
+            <span class="text-xs bg-[#ffb703]/20 text-[#ffb703] px-1.5 py-0.5 rounded font-semibold">★ 4.8</span>
+          </h1>
+          <p class="text-xs text-emerald-400 flex items-center gap-1 mt-0.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Geöffnet • 8462 Gamlitz (Live-Sync aktiv)
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="openAccountModal()" id="accountBtn" class="text-xs bg-neutral-800 hover:bg-neutral-700 px-3 py-2 rounded-lg font-medium border border-neutral-700 transition">
+          👤 Konto
+        </button>
+        <button onclick="toggleView()" id="viewToggleBtn" class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-2 rounded-lg font-bold transition">
+          👨‍🍳 Küche (<span id="kitchenBadge">0</span>)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== KUNDEN-ANSICHT ==================== -->
+  <main id="customerView" class="max-w-2xl mx-auto px-4 pt-4">
+
+    <!-- LIVE BESTELLSTATUS BANNER (Erscheint nach Bestellung & aktualisiert sich live über Handy 2) -->
+    <div id="liveOrderStatus" class="hidden mb-5 p-4 rounded-2xl border-2 border-[#ffb703] bg-[#1a1a1a] shadow-xl transition-all">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-[#ffb703]" id="statusOrderNumber">BESTELLUNG #101</span>
+        <span class="text-xs bg-neutral-800 px-2 py-1 rounded text-neutral-300" id="statusOrderType">Lieferung</span>
+      </div>
+      <h3 class="text-lg font-extrabold mb-1" id="statusHeadline">⏳ Warte auf Bestätigung der Küche...</h3>
+      <p class="text-xs text-neutral-300 leading-relaxed" id="statusSubtext">Deine Bestellung wurde in Echtzeit an das Küchen-Tablet übertragen.</p>
+    </div>
+
+    <!-- LIEFERUNG vs. ABHOLUNG TOGGLE -->
+    <div class="bg-[#1a1a1a] p-1.5 rounded-2xl flex border border-neutral-800 mb-3">
+      <button onclick="setOrderMode('delivery')" id="btnDelivery" class="flex-1 py-2.5 rounded-xl font-bold text-sm transition bg-[#e63946] text-white shadow">
+        🛵 Lieferung
+      </button>
+      <button onclick="setOrderMode('pickup')" id="btnPickup" class="flex-1 py-2.5 rounded-xl font-bold text-sm transition text-neutral-400 hover:text-white">
+        🛍️ Abholung im Lokal
+      </button>
+    </div>
+
+    <div id="modeInfoBanner" class="text-xs text-neutral-400 bg-[#181818] border border-neutral-800/80 rounded-xl px-3.5 py-2.5 mb-3 flex items-center justify-between">
+      <span>📍 <strong>Liefergebiet:</strong> Gamlitz (8462), Ehrenhausen (8461), Straß (8472), Leibnitz (8430)</span>
+      <span class="text-[#ffb703] font-semibold shrink-0 ml-2">0% Gebühr</span>
+    </div>
+
+    <!-- KATEGORIEN (STICKY) -->
+    <div class="sticky top-[61px] z-30 bg-[#111111] py-2.5 -mx-4 px-4 border-b border-neutral-800/80 mb-2 flex gap-2 overflow-x-auto no-scrollbar">
+      <button onclick="filterCategory('Alle')" class="cat-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold bg-[#e63946] text-white">🔥 Alle</button>
+      <button onclick="filterCategory('Pizza')" class="cat-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold bg-[#1a1a1a] text-neutral-300 border border-neutral-800">🍕 Pizza</button>
+      <button onclick="filterCategory('Kebap')" class="cat-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold bg-[#1a1a1a] text-neutral-300 border border-neutral-800">🥙 Kebap & Dürüm</button>
+      <button onclick="filterCategory('Snacks')" class="cat-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold bg-[#1a1a1a] text-neutral-300 border border-neutral-800">🍟 Box & Snacks</button>
+      <button onclick="filterCategory('Getränke')" class="cat-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold bg-[#1a1a1a] text-neutral-300 border border-neutral-800">🥤 Getränke</button>
+    </div>
+
+    <!-- RECHTLICHER HINWEIS SYMBOLBILDER -->
+    <div class="text-[11px] text-neutral-500 mb-3 flex items-center justify-between px-1">
+      <span>ℹ️ Hinweis: Alle Speisen-Abbildungen dienen als Symbolbilder.</span>
+      <span>Preise inkl. MwSt.</span>
+    </div>
+
+    <!-- SPEISEKARTE LISTE -->
+    <div id="menuContainer" class="space-y-3"></div>
+
+    <!-- FOOTER MIT IMPRESSUM, DATENSCHUTZ & POWERED BY -->
+    <footer class="mt-12 pt-6 border-t border-neutral-800 text-center text-xs text-neutral-500 space-y-2 pb-12">
+      <p class="font-semibold text-neutral-300">Bro's Pizza & Kebap • Pleysteinplatz 402, 8462 Gamlitz</p>
+      <p>Tel: +43 664 8666503 • Direktbestellung ohne Zwischenhändler</p>
+      <p class="text-[11px] text-neutral-600">Alle Produktfotos auf dieser Seite sind Symbolbilder.</p>
+      <div class="flex justify-center gap-4 pt-2">
+        <button onclick="openLegalModal('impressum')" class="underline hover:text-white">Impressum</button>
+        <button onclick="openLegalModal('datenschutz')" class="underline hover:text-white">Datenschutzerklärung (DSGVO)</button>
+        <button onclick="openLegalModal('agb')" class="underline hover:text-white">AGB</button>
+      </div>
+      <div class="pt-5 mt-4 border-t border-neutral-900">
+        <a href="https://wa.me/?text=Hallo!%20Ich%20habe%20das%20Direkt-Bestellsystem%20bei%20Bros%20Pizza%20gesehen%20und%20interessiere%20mich%20auch%20daf%C3%BCr." target="_blank" class="inline-block bg-[#1a1a1a] hover:bg-neutral-800 border border-neutral-800 px-3.5 py-2 rounded-xl text-[11px] text-neutral-400 transition">
+          ⚡ Direkt-Bestellsystem (0% Provision) powered by <strong class="text-[#ffb703]">TapOrder Digital</strong> – Auch für Ihr Lokal?
+        </a>
+      </div>
+    </footer>
+  </main>
+
+  <!-- ==================== KÜCHEN-TABLET ANSICHT (HANDY 2) ==================== -->
+  <section id="kitchenView" class="hidden max-w-3xl mx-auto px-4 pt-4">
+
+    <!-- WICHTIGER BUTTON FÜR IPHONE/TABLET AUTOPLAY-SPERRE & WAKE-LOCK -->
+    <div id="audioUnlockBanner" class="mb-4 p-4 rounded-2xl bg-emerald-950/80 border-2 border-emerald-500 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h3 class="text-sm font-black text-emerald-300">🔊 Schritt 1 für Küchen-Gerät: Alarm-Ton scharfschalten</h3>
+        <p class="text-xs text-emerald-200/80">Einmal antippen, damit dieses Gerät bei Bestellungen vom anderen Handy laut klingelt und das Display an bleibt.</p>
+      </div>
+      <button onclick="activateKitchenAudio()" class="bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs px-4 py-2.5 rounded-xl shadow-lg">
+        🔊 JETZT AKTIVIEREN (TEST-TON)
+      </button>
+    </div>
+
+    <!-- KÜCHEN HEADER & KLINGELTON-WAHL -->
+    <div class="bg-[#1a1a1a] border border-neutral-800 rounded-2xl p-4 mb-4 space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-black text-amber-400 flex items-center gap-2">
+            👨‍🍳 BRO'S KÜCHEN-TERMINAL (ECHTZEIT-SYNC)
+          </h2>
+          <p class="text-xs text-neutral-400">Bestellungen von anderen Handys ploppen hier sofort live auf.</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="switchKitchenTab('orders')" id="kTabOrders" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#e63946] text-white">
+            🔔 Bestellungen (<span id="kTabCount">0</span>)
+          </button>
+          <button onclick="switchKitchenTab('menu')" id="kTabMenu" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-neutral-800 text-neutral-300">
+            📋 Speisekarte & Preise
+          </button>
+        </div>
+      </div>
+
+      <!-- KLINGELTON EINSTELLUNG FÜR DEN CHEF -->
+      <div class="pt-3 border-t border-neutral-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-neutral-400 font-bold">🔔 Klingelton:</span>
+          <select id="soundSelector" onchange="testSelectedSound()" class="bg-[#111111] border border-neutral-700 rounded-lg px-2.5 py-1.5 text-white font-semibold">
+            <option value="bell">1. Klassische Ladenklingel (Empfohlen)</option>
+            <option value="buzzer">2. Lauter Küchen-Buzzer (Für laute Öfen)</option>
+            <option value="gong">3. Sanfter Doppel-Gong</option>
+            <option value="siren">4. Intensiver Alarm-Piep</option>
+            <option value="custom" id="customSoundOption" disabled>5. Eigener Ton (MP3 geladen)</option>
+          </select>
+          <label class="cursor-pointer bg-neutral-800 hover:bg-neutral-700 px-2.5 py-1.5 rounded-lg border border-neutral-700 font-semibold">
+            🎵 Eigene MP3 wählen
+            <input type="file" accept="audio/*" onchange="uploadCustomSound(event)" class="hidden" />
+          </label>
+        </div>
+        <button onclick="clearAllDemoOrders()" class="text-neutral-500 hover:text-red-400 underline text-[11px]">
+          🔄 Demo-Liste leeren
+        </button>
+      </div>
+    </div>
+
+    <!-- KÜCHE: EINGEHENDE BESTELLUNGEN -->
+    <div id="kitchenOrdersList" class="space-y-4"></div>
+
+    <!-- KÜCHE: SPEISEKARTE & PREISE VERWALTEN -->
+    <div id="kitchenMenuManager" class="hidden space-y-2.5"></div>
+  </section>
+
+  <!-- ==================== FLOATING WARENKORB BUTTON ==================== -->
+  <div id="floatingCartBar" class="fixed bottom-0 left-0 right-0 z-40 p-3 bg-gradient-to-t from-black via-black/90 to-transparent hidden">
+    <div class="max-w-2xl mx-auto">
+      <button onclick="openCheckoutModal()" class="w-full bg-[#e63946] hover:bg-[#d62828] text-white font-extrabold py-3.5 px-5 rounded-2xl shadow-xl shadow-[#e63946]/30 flex items-center justify-between transition">
+        <div class="flex items-center gap-2.5">
+          <span class="bg-black/30 px-2.5 py-1 rounded-lg text-sm" id="cartCountBadge">1</span>
+          <span>Warenkorb ansehen</span>
+        </div>
+        <span class="text-base" id="cartTotalBadge">0,00 €</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 1: EXTRAS & GRÖSSE WÄHLEN ==================== -->
+  <div id="itemModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-[#1a1a1a] border border-neutral-800 w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-start mb-3">
+        <div>
+          <h3 id="modalItemName" class="text-lg font-extrabold">Pizza Margherita</h3>
+          <p id="modalItemDesc" class="text-xs text-neutral-400 mt-0.5"></p>
+        </div>
+        <button onclick="closeItemModal()" class="w-8 h-8 rounded-full bg-neutral-800 text-neutral-400 hover:text-white font-bold">✕</button>
+      </div>
+
+      <div id="modalOptionsContainer" class="space-y-4 my-4"></div>
+
+      <div>
+        <label class="block text-xs font-bold text-neutral-300 mb-1">📝 Anmerkung für die Küche (optional):</label>
+        <input type="text" id="modalItemNote" maxlength="120" placeholder="z.B. bitte gut durchbacken, schneiden..." class="w-full bg-[#111111] border border-neutral-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e63946]" />
+      </div>
+
+      <button onclick="confirmAddToCart()" class="mt-5 w-full bg-[#e63946] hover:bg-[#d62828] text-white font-extrabold py-3.5 rounded-xl flex justify-between px-5">
+        <span>Zum Warenkorb hinzufügen</span>
+        <span id="modalLivePrice">9,50 €</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2: WARENKORB & CHECKOUT ==================== -->
+  <div id="checkoutModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-[#1a1a1a] border border-neutral-800 w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[92vh] overflow-y-auto">
+      <div class="flex justify-between items-center pb-3 border-b border-neutral-800">
+        <h3 class="text-lg font-extrabold">🛒 Dein Warenkorb</h3>
+        <button onclick="closeCheckoutModal()" class="w-8 h-8 rounded-full bg-neutral-800 text-neutral-400 hover:text-white font-bold">✕</button>
+      </div>
+
+      <div id="cartItemsList" class="divide-y divide-neutral-800 my-3"></div>
+
+      <!-- Trinkgeld Auswahl -->
+      <div class="my-4 bg-[#121212] p-3.5 rounded-2xl border border-neutral-800">
+        <label class="block text-xs font-bold text-neutral-300 mb-2">💛 Trinkgeld für das Team (100% für Fahrer/Küche):</label>
+        <div class="grid grid-cols-4 gap-2">
+          <button onclick="setTip(0, 'none')" id="tip_none" class="tip-btn py-2 rounded-xl text-xs font-bold bg-[#e63946] text-white">Kein</button>
+          <button onclick="setTip(1, 'fix1')" id="tip_fix1" class="tip-btn py-2 rounded-xl text-xs font-bold bg-neutral-800 text-neutral-300">+ 1,00 €</button>
+          <button onclick="setTip(2, 'fix2')" id="tip_fix2" class="tip-btn py-2 rounded-xl text-xs font-bold bg-neutral-800 text-neutral-300">+ 2,00 €</button>
+          <button onclick="setTip(10, 'pct10')" id="tip_pct10" class="tip-btn py-2 rounded-xl text-xs font-bold bg-neutral-800 text-neutral-300">+ 10 %</button>
+        </div>
+      </div>
+
+      <!-- Kundendaten & Format-Prüfung -->
+      <div class="space-y-3 my-4">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-[#ffb703]" id="checkoutFormTitle">🛵 Lieferadresse & Kontakt</h4>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <input type="text" id="custName" placeholder="Vor- und Nachname *" class="w-full bg-[#111111] border border-neutral-700 rounded-xl px-3.5 py-2.5 text-sm text-white" />
+          <input type="tel" id="custPhone" oninput="this.value = this.value.replace(/[^0-9+\s/-]/g, '')" placeholder="Telefon (z.B. 0664 1234567) *" class="w-full bg-[#111111] border border-neutral-700 rounded-xl px-3.5 py-2.5 text-sm text-white" />
+        </div>
+        <input type="email" id="custEmail" placeholder="E-Mail für Bestellbestätigung (z.B. name@mail.at) *" class="w-full bg-[#111111] border border-neutral-700 rounded-xl px-3.5 py-2.5 text-sm text-white" />
+
+        <!-- Nur bei Lieferung sichtbar -->
+        <div id="deliveryAddressFields" class="space-y-2.5">
+          <input type="text" id="custStreet" placeholder="Straße & Hausnummer (z.B. Hauptstraße 12) *" class="w-full bg-[#111111] border border-neutral-700 rounded-xl px-3.5 py-2.5 text-sm text-white" />
+          <div class="grid grid-cols-3 gap-2.5">
+            <input type="text" id="custZip" oninput="this.value = this.value.replace(/[^0-9]/g, ''); validateZipLive();" maxlength="4" placeholder="PLZ (8462) *" class="bg-[#111111] border-2 border-[#ffb703] rounded-xl px-3.5 py-2.5 text-sm font-bold text-white" />
+            <input type="text" id="custCity" placeholder="Ort *" class="col-span-2 bg-[#111111] border border-neutral-700 rounded-xl px-3.5 py-2.5 text-sm text-white" />
+          </div>
+          <!-- Live PLZ Status-Box -->
+          <div id="zipValidationBox" class="p-3 rounded-xl text-xs font-semibold bg-neutral-900 border border-neutral-700 text-neutral-400">
+            ℹ️ Bitte gib deine 4-stellige Postleitzahl ein (z.B. 8462 für Gamlitz oder 9999 zum Testen der Sperre).
+          </div>
+        </div>
+
+        <!-- Nur bei Abholung sichtbar -->
+        <div id="pickupTimeFields" class="hidden">
+          <label class="block text-xs text-neutral-400 mb-1">Gewünschte Abholzeit im Lokal (Pleysteinplatz 402, Gamlitz):</label>
+          <select id="pickupTimeSelect" class="w-full bg-[#111111] border border-neutral-700 rounded-xl px-3.5 py-2.5 text-sm text-white">
+            <option value="Schnellstmöglich (ca. 15–20 Min.)">⚡ Schnellstmöglich (in ca. 15–20 Min.)</option>
+            <option value="In 30 Minuten">🕒 In 30 Minuten</option>
+            <option value="In 45 Minuten">🕓 In 45 Minuten</option>
+            <option value="In 60 Minuten">🕔 In 60 Minuten</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Zahlungsart -->
+      <div class="my-4">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2">💳 Zahlungsart wählen</h4>
+        <div class="space-y-2">
+          <label class="flex items-center gap-3 p-3 rounded-xl bg-[#111111] border border-neutral-700 cursor-pointer">
+            <input type="radio" name="payMethod" value="Barzahlung bei Übergabe" checked class="accent-[#e63946]" />
+            <span class="text-sm font-medium">💵 Barzahlung (bei Lieferung / im Lokal)</span>
+          </label>
+          <label class="flex items-center gap-3 p-3 rounded-xl bg-[#111111] border border-neutral-700 cursor-pointer">
+            <input type="radio" name="payMethod" value="Kartenzahlung vor Ort / beim Fahrer" class="accent-[#e63946]" />
+            <span class="text-sm font-medium">💳 Kartenzahlung (beim Fahrer / im Lokal)</span>
+          </label>
+          <label class="flex items-center gap-3 p-3 rounded-xl bg-[#111111] border border-neutral-700 cursor-pointer">
+            <input type="radio" name="payMethod" value="BEREITS ONLINE BEZAHLT (Apple Pay / Stripe)" class="accent-[#e63946]" />
+            <span class="text-sm font-medium">🍎 Online bezahlen (Apple Pay / Karte / Klarna)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Preisübersicht -->
+      <div class="bg-[#111111] p-3.5 rounded-2xl border border-neutral-800 text-xs space-y-1.5 my-4">
+        <div class="flex justify-between text-neutral-400"><span>Zwischensumme:</span><span id="sumSubtotal">0,00 €</span></div>
+        <div class="flex justify-between text-neutral-400" id="rowDeliveryFee"><span>Liefergebühr:</span><span id="sumDelivery">0,00 €</span></div>
+        <div class="flex justify-between text-neutral-400"><span>Trinkgeld:</span><span id="sumTip">0,00 €</span></div>
+        <div class="flex justify-between text-base font-extrabold text-white pt-1.5 border-t border-neutral-800">
+          <span>Gesamtsumme (inkl. MwSt.):</span><span id="sumTotal" class="text-[#ffb703]">0,00 €</span>
+        </div>
+      </div>
+
+      <!-- DSGVO Checkbox -->
+      <label class="flex items-start gap-2.5 text-xs text-neutral-400 my-3 cursor-pointer">
+        <input type="checkbox" id="legalConsent" class="mt-0.5 accent-[#e63946]" />
+        <span>Ich akzeptiere die <button type="button" onclick="openLegalModal('agb')" class="underline text-white">AGB</button> und stimme der Verarbeitung meiner Daten zur Bestellabwicklung gemäß <button type="button" onclick="openLegalModal('datenschutz')" class="underline text-white">Datenschutzerklärung</button> zu. *</span>
+      </label>
+
+      <div id="checkoutErrorMsg" class="hidden text-xs text-red-300 font-bold mb-3 p-3 bg-red-950/70 border border-red-600 rounded-xl"></div>
+
+      <button onclick="submitOrder()" id="finalOrderBtn" class="w-full bg-[#e63946] hover:bg-[#d62828] disabled:bg-neutral-800 disabled:text-neutral-500 text-white font-extrabold py-4 rounded-2xl text-base shadow-lg transition">
+        Jetzt kostenpflichtig bestellen
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 3: MEIN KONTO (LOGIN & PROFIL) ==================== -->
+  <div id="accountModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-[#1a1a1a] border border-neutral-800 w-full max-w-md rounded-3xl p-5 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center pb-3 border-b border-neutral-800 mb-4">
+        <h3 class="text-lg font-extrabold">👤 Kundenkonto</h3>
+        <button onclick="closeAccountModal()" class="w-8 h-8 rounded-full bg-neutral-800 text-neutral-400 hover:text-white font-bold">✕</button>
+      </div>
+
+      <div id="accountLoggedOutView" class="space-y-3">
+        <p class="text-xs text-neutral-400">Speichere deine Lieferadresse für die nächste Bestellung und bestelle deine Lieblingsgerichte mit einem Klick erneut.</p>
+        <input type="email" id="loginEmail" placeholder="E-Mail-Adresse" value="stammkunde@gamlitz.at" class="w-full bg-[#111111] border border-neutral-700 rounded-xl px-3.5 py-2.5 text-sm text-white" />
+        <input type="password" id="loginPass" placeholder="Passwort" value="12345678" class="w-full bg-[#111111] border border-neutral-700 rounded-xl px-3.5 py-2.5 text-sm text-white" />
+        <button onclick="loginDemoUser()" class="w-full bg-[#e63946] text-white font-bold py-3 rounded-xl text-sm">
+          Anmelden (Sofort ohne E-Mail-Wartezeit)
+        </button>
+        <p class="text-[11px] text-center text-neutral-500">Hinweis: Du kannst jederzeit auch ohne Konto als Gast bestellen.</p>
+      </div>
+
+      <div id="accountLoggedInView" class="hidden space-y-4">
+        <div class="bg-emerald-950/40 border border-emerald-700/50 p-3 rounded-xl text-xs text-emerald-300 font-semibold">
+          ✅ Eingeloggt! Deine Standard-Lieferadresse wird im Warenkorb automatisch vorausgefüllt.
+        </div>
+        <div class="space-y-2">
+          <label class="text-xs font-bold text-neutral-400">Gespeicherte Profildaten:</label>
+          <input type="text" id="profName" value="Markus Steiner" class="w-full bg-[#111111] border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white" />
+          <input type="tel" id="profPhone" value="0664 1234567" class="w-full bg-[#111111] border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white" />
+          <input type="email" id="profEmail" value="stammkunde@gamlitz.at" class="w-full bg-[#111111] border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white" />
+          <input type="text" id="profStreet" value="Weinstraße 14" class="w-full bg-[#111111] border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white" />
+          <div class="grid grid-cols-3 gap-2">
+            <input type="text" id="profZip" value="8462" class="bg-[#111111] border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white" />
+            <input type="text" id="profCity" value="Gamlitz" class="col-span-2 bg-[#111111] border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white" />
+          </div>
+          <button onclick="saveProfileData()" class="w-full bg-neutral-800 hover:bg-neutral-700 text-xs font-bold py-2 rounded-xl text-white">Profil speichern</button>
+        </div>
+
+        <div class="pt-3 border-t border-neutral-800">
+          <h4 class="text-xs font-bold text-neutral-300 mb-2">🔄 Meine Bestell-Historie:</h4>
+          <div class="bg-[#111111] p-3 rounded-xl border border-neutral-800 flex items-center justify-between">
+            <div class="text-xs">
+              <p class="font-bold">1x Pizza Bro's Spezial, 1x Coca-Cola 0,5l</p>
+              <p class="text-neutral-500">16,30 € • Geliefert nach 8462 Gamlitz</p>
+            </div>
+            <button onclick="reorderFavorite()" class="bg-[#ffb703] text-black font-bold text-xs px-3 py-2 rounded-lg">
+              🔄 Nochmal
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 4: STORNO-GRUND WÄHLEN (FÜR KÜCHE) ==================== -->
+  <div id="rejectModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-[#1a1a1a] border border-neutral-800 w-full max-w-md rounded-3xl p-5">
+      <h3 class="text-base font-extrabold text-red-400 mb-2">❌ Bestellung ablehnen / stornieren</h3>
+      <p class="text-xs text-neutral-400 mb-4">Bitte wähle den Grund. Das Kunden-Handy wird sofort live informiert (bei Online-Zahlung erfolgt eine automatische Rückerstattung).</p>
+      <div class="space-y-2 mb-4">
+        <button onclick="confirmRejectOrder('Artikel heute leider ausverkauft')" class="w-full text-left p-3 rounded-xl bg-[#111111] hover:bg-red-950/40 border border-neutral-700 text-xs font-bold">1. Artikel heute leider ausverkauft</button>
+        <button onclick="confirmRejectOrder('Adresse liegt außerhalb unseres Liefergebiets')" class="w-full text-left p-3 rounded-xl bg-[#111111] hover:bg-red-950/40 border border-neutral-700 text-xs font-bold">2. Außerhalb unseres Liefergebiets</button>
+        <button onclick="confirmRejectOrder('Aktuell zu hohes Bestellaufkommen in der Küche')" class="w-full text-left p-3 rounded-xl bg-[#111111] hover:bg-red-950/40 border border-neutral-700 text-xs font-bold">3. Aktuell zu hohes Bestellaufkommen</button>
+        <button onclick="confirmRejectOrder('Lokal schließt in Kürze')" class="w-full text-left p-3 rounded-xl bg-[#111111] hover:bg-red-950/40 border border-neutral-700 text-xs font-bold">4. Lokal schließt in Kürze</button>
+      </div>
+      <button onclick="closeRejectModal()" class="w-full py-2.5 rounded-xl bg-neutral-800 text-xs font-bold">Abbrechen</button>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 5: DATENSCHUTZ / IMPRESSUM / AGB ==================== -->
+  <div id="legalModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-[#1a1a1a] border border-neutral-800 w-full max-w-lg rounded-3xl p-5 max-h-[85vh] overflow-y-auto">
+      <div class="flex justify-between items-center pb-3 border-b border-neutral-800 mb-3">
+        <h3 id="legalModalTitle" class="text-base font-extrabold">Rechtliche Informationen</h3>
+        <button onclick="closeLegalModal()" class="w-8 h-8 rounded-full bg-neutral-800 text-neutral-400 hover:text-white font-bold">✕</button>
+      </div>
+      <div id="legalModalContent" class="text-xs text-neutral-300 space-y-3 leading-relaxed"></div>
+    </div>
+  </div>
+
+  <!-- ==================== JAVASCRIPT & 2-HANDY LIVE-SYNC LOGIK ==================== -->
+  <script>
+    // ECHTZEIT-KANAL FÜR DEINE 2 HANDYS (ntfy Pub/Sub - 0€ & ohne Login)
+    const SYNC_TOPIC = "bros_pizza_gamlitz_8462_live_sync_v1";
+    const SYNC_URL = "https://ntfy.sh/" + SYNC_TOPIC;
+    let processedEvents = new Set();
+    let activeCustomerOrderId = null;
+
+    // 1. Gültige Liefer-Postleitzahlen rund um 8462 Gamlitz
+    const DELIVERY_ZONES = {
+      "8462": { name: "Gamlitz", mbw: 15.00, fee: 2.00 },
+      "8461": { name: "Ehrenhausen an der Weinstraße", mbw: 18.00, fee: 2.50 },
+      "8472": { name: "Straß in Steiermark / Vogau", mbw: 20.00, fee: 3.00 },
+      "8430": { name: "Leibnitz", mbw: 25.00, fee: 3.50 }
+    };
+
+    // 2. Speisekarte von Bro's Pizza & Kebap
+    let menuItems = [
+      { id: 1, cat: "Pizza", name: "Pizza Margherita", desc: "Hausgemachte Tomatensauce, 100% Mozzarella, Oregano", price: 9.50, available: true, type: "pizza" },
+      { id: 2, cat: "Pizza", name: "Pizza Cardinale", desc: "Tomatensauce, Mozzarella, feiner Putenschinken", price: 10.90, available: true, type: "pizza" },
+      { id: 3, cat: "Pizza", name: "Pizza Diavolo (Scharf)", desc: "Tomatensauce, Mozzarella, Salami, scharfe Pfefferoni", price: 11.50, available: true, type: "pizza" },
+      { id: 4, cat: "Pizza", name: "Pizza Bro's Spezial", desc: "Tomatensauce, Käse, Kebapfleisch, Schinken, Salami, Mais & Zwiebeln", price: 13.50, available: true, type: "pizza" },
+      { id: 5, cat: "Kebap", name: "Kebap im Fladenbrot", desc: "Knuspriges Hausbrot, saftiges Kebapfleisch, frischer Salat, Tomaten, Zwiebeln & Sauce", price: 6.50, available: true, type: "kebap" },
+      { id: 6, cat: "Kebap", name: "Dürüm Kebap", desc: "Frisch gerolltes Fladenbrot mit Kebapfleisch, Salat, Tomaten, Zwiebeln & Wunschsauce", price: 7.50, available: true, type: "kebap" },
+      { id: 7, cat: "Snacks", name: "Kebap Box mit Pommes", desc: "Saftiges Kebapfleisch auf knusprigen Pommes Frites mit Sauce nach Wahl", price: 7.90, available: true, type: "kebap" },
+      { id: 8, cat: "Snacks", name: "Portion Pommes Frites", desc: "Goldgelb frittiert, inkl. Ketchup oder Mayonnaise", price: 4.50, available: true, type: "simple" },
+      { id: 9, cat: "Getränke", name: "Coca-Cola 0,5l", desc: "Gekühlt (inkl. Pfand)", price: 2.80, available: true, type: "simple" },
+      { id: 10, cat: "Getränke", name: "Ayran 0,25l", desc: "Erfrischendes Joghurtgetränk", price: 2.20, available: true, type: "simple" }
+    ];
+
+    let currentCategory = "Alle";
+    let orderMode = "delivery";
+    let cart = [];
+    let selectedModalItem = null;
+    let tipValue = 0;
+    let tipMode = "none";
+    let orders = [];
+    let rejectingOrderId = null;
+    let isSubmitting = false;
+
+    // Audio & Endlos-Alarm Variablen für das Küchen-Tablet
+    let audioCtx = null;
+    let alarmInterval = null;
+    let customAudioUrl = null;
+    let customAudioObj = null;
+
+    function initAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+    }
+
+    // Küchendienst-Button (Schaltet Audio + Bildschirm-Wachhalter auf Handy 2 frei)
+    async function activateKitchenAudio() {
+      initAudioContext();
+      playSelectedToneOnce();
+      const banner = document.getElementById("audioUnlockBanner");
+      banner.className = "mb-4 p-3 rounded-2xl bg-neutral-900 border border-emerald-700/50 flex items-center justify-between";
+      banner.innerHTML = `<span class="text-xs text-emerald-400 font-bold">✅ Küchen-Alarm & Live-Empfang sind aktiv! (Lautstärke am Handy aufdrehen)</span>`;
+      try {
+        if ("wakeLock" in navigator) {
+          await navigator.wakeLock.request("screen");
+        }
+      } catch (e) {}
+    }
+
+    function uploadCustomSound(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      customAudioUrl = URL.createObjectURL(file);
+      customAudioObj = new Audio(customAudioUrl);
+      const opt = document.getElementById("customSoundOption");
+      opt.disabled = false;
+      opt.textContent = "5. Eigener Ton: " + file.name.substring(0, 18);
+      document.getElementById("soundSelector").value = "custom";
+      playSelectedToneOnce();
+    }
+
+    function testSelectedSound() {
+      initAudioContext();
+      playSelectedToneOnce();
+    }
+
+    // Spielt den gewählten Klingelton 1x ab
+    function playSelectedToneOnce() {
+      const type = document.getElementById("soundSelector") ? document.getElementById("soundSelector").value : "bell";
+      if (type === "custom" && customAudioObj) {
+        customAudioObj.currentTime = 0;
+        customAudioObj.play().catch(() => {});
+        return;
+      }
+      try {
+        initAudioContext();
+        const now = audioCtx.currentTime;
+        if (type === "bell") {
+          [0, 0.22].forEach((d, idx) => {
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(idx === 0 ? 987.77 : 1318.51, now + d);
+            g.gain.setValueAtTime(0.35, now + d);
+            g.gain.exponentialRampToValueAtTime(0.001, now + d + 0.45);
+            osc.connect(g); g.connect(audioCtx.destination);
+            osc.start(now + d); osc.stop(now + d + 0.46);
+          });
+        } else if (type === "buzzer") {
+          [0, 0.3, 0.6].forEach(d => {
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(440, now + d);
+            g.gain.setValueAtTime(0.3, now + d);
+            g.gain.exponentialRampToValueAtTime(0.01, now + d + 0.22);
+            osc.connect(g); g.connect(audioCtx.destination);
+            osc.start(now + d); osc.stop(now + d + 0.24);
+          });
+        } else if (type === "gong") {
+          const osc = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(528, now);
+          g.gain.setValueAtTime(0.4, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+          osc.connect(g); g.connect(audioCtx.destination);
+          osc.start(now); osc.stop(now + 1.25);
+        } else {
+          [0, 0.15, 0.3, 0.45].forEach((d, i) => {
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.type = "square";
+            osc.frequency.setValueAtTime(i % 2 === 0 ? 880 : 1174, now + d);
+            g.gain.setValueAtTime(0.25, now + d);
+            g.gain.exponentialRampToValueAtTime(0.01, now + d + 0.13);
+            osc.connect(g); g.connect(audioCtx.destination);
+            osc.start(now + d); osc.stop(now + d + 0.14);
+          });
+        }
+      } catch (e) {}
+    }
+
+    // Prüft, ob offene Bestellungen da sind, und lässt das Küchen-Handy im Loop klingeln
+    function checkAndManageAlarmLoop() {
+      const hasPending = orders.some(o => o.status === "pending");
+      if (hasPending) {
+        if (!alarmInterval) {
+          playSelectedToneOnce();
+          alarmInterval = setInterval(() => {
+            if (orders.some(o => o.status === "pending")) {
+              playSelectedToneOnce();
+            } else {
+              clearInterval(alarmInterval);
+              alarmInterval = null;
+            }
+          }, 2800);
+        }
+      } else if (alarmInterval) {
+        clearInterval(alarmInterval);
+        alarmInterval = null;
+      }
+    }
+
+    // ==================== CLOUD SYNC ZWISCHEN HANDY 1 & HANDY 2 ====================
+    async function broadcastSyncEvent(action, data) {
+      const payload = {
+        eventId: Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+        action: action,
+        data: data
+      };
+      processedEvents.add(payload.eventId);
+      try {
+        await fetch(SYNC_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.warn("Sync-Warnung:", err);
+      }
+    }
+
+    function handleIncomingSyncPayload(rawString) {
+      try {
+        const outer = JSON.parse(rawString);
+        if (outer.event !== "message" || !outer.message) return;
+        const msg = JSON.parse(outer.message);
+        if (!msg.eventId || processedEvents.has(msg.eventId)) return;
+        processedEvents.add(msg.eventId);
+
+        if (msg.action === "NEW_ORDER") {
+          const incomingOrder = msg.data;
+          if (!orders.some(o => o.id === incomingOrder.id)) {
+            orders.unshift(incomingOrder);
+            updateKitchenUI();
+            checkAndManageAlarmLoop();
+          }
+        } else if (msg.action === "ORDER_STATUS") {
+          const { id, status, eta, rejectReason } = msg.data;
+          const ord = orders.find(o => o.id === id);
+          if (ord) {
+            ord.status = status;
+            ord.eta = eta;
+            ord.rejectReason = rejectReason;
+            updateKitchenUI();
+            checkAndManageAlarmLoop();
+          }
+          if (activeCustomerOrderId === id) {
+            updateCustomerLiveTracker({
+              id: id,
+              time: ord ? ord.time : "Gerade eben",
+              mode: ord ? ord.mode : "Bestellung",
+              address: ord ? ord.address : "",
+              status: status,
+              eta: eta,
+              rejectReason: rejectReason
+            });
+            playSelectedToneOnce();
+          }
+        } else if (msg.action === "MENU_UPDATE") {
+          const { id, available, price } = msg.data;
+          const item = menuItems.find(i => i.id === id);
+          if (item) {
+            item.available = available;
+            if (price !== undefined) item.price = price;
+            renderMenu();
+            renderKitchenMenuManager();
+          }
+        } else if (msg.action === "CLEAR_ALL") {
+          orders = [];
+          updateKitchenUI();
+          checkAndManageAlarmLoop();
+          document.getElementById("liveOrderStatus").classList.add("hidden");
+        }
+      } catch (e) {}
+    }
+
+    function startRealtimeSync() {
+      // 1. Echtzeit-Stream (SSE)
+      try {
+        const sse = new EventSource(SYNC_URL + "/sse");
+        sse.onmessage = (e) => handleIncomingSyncPayload(e.data);
+      } catch (e) {}
+
+      // 2. Zuverlässiger Polling-Abgleich alle 2,5 Sekunden (falls WLAN wackelt oder CodePen-Iframe SSE blockt)
+      setInterval(async () => {
+        try {
+          const res = await fetch(SYNC_URL + "/json?poll=1&since=20m");
+          const text = await res.text();
+          text.split("\n").forEach(line => {
+            if (line.trim()) handleIncomingSyncPayload(line);
+          });
+        } catch (e) {}
+      }, 2500);
+    }
+
+    function formatPrice(num) {
+      return Number(num).toFixed(2).replace(".", ",") + " €";
+    }
+
+    // Speisekarte rendern
+    function renderMenu() {
+      const container = document.getElementById("menuContainer");
+      const filtered = currentCategory === "Alle" ? menuItems : menuItems.filter(i => i.cat === currentCategory);
+      container.innerHTML = filtered.map(item => `
+        <div class="bg-[#1a1a1a] border border-neutral-800 rounded-2xl p-4 flex items-center justify-between gap-3 ${!item.available ? 'opacity-50' : ''}">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h3 class="font-bold text-base">${item.name}</h3>
+              ${!item.available ? '<span class="text-[10px] bg-red-900/70 text-red-200 px-2 py-0.5 rounded font-bold">HEUTE AUSVERKAUFT</span>' : ''}
+            </div>
+            <p class="text-xs text-neutral-400 mt-1 leading-relaxed">${item.desc}</p>
+            <p class="text-sm font-extrabold text-[#ffb703] mt-2">${formatPrice(item.price)}</p>
+          </div>
+          <button ${!item.available ? 'disabled' : ''} onclick="openItemModal(${item.id})" class="w-11 h-11 rounded-2xl bg-[#e63946] hover:bg-[#d62828] disabled:bg-neutral-800 text-white font-black text-xl flex items-center justify-center shadow-md shrink-0">
+            +
+          </button>
+        </div>
+      `).join("");
+    }
+
+    function filterCategory(cat) {
+      currentCategory = cat;
+      document.querySelectorAll(".cat-btn").forEach(btn => {
+        if (btn.textContent.includes(cat)) {
+          btn.className = "cat-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold bg-[#e63946] text-white";
+        } else {
+          btn.className = "cat-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold bg-[#1a1a1a] text-neutral-300 border border-neutral-800";
+        }
+      });
+      renderMenu();
+    }
+
+    function setOrderMode(mode) {
+      orderMode = mode;
+      const btnDel = document.getElementById("btnDelivery");
+      const btnPick = document.getElementById("btnPickup");
+      const banner = document.getElementById("modeInfoBanner");
+      if (mode === "delivery") {
+        btnDel.className = "flex-1 py-2.5 rounded-xl font-bold text-sm transition bg-[#e63946] text-white shadow";
+        btnPick.className = "flex-1 py-2.5 rounded-xl font-bold text-sm transition text-neutral-400 hover:text-white";
+        banner.innerHTML = '<span>📍 <strong>Liefergebiet:</strong> Gamlitz (8462), Ehrenhausen (8461), Straß (8472), Leibnitz (8430)</span><span class="text-[#ffb703] font-semibold shrink-0 ml-2">Live PLZ-Check</span>';
+      } else {
+        btnPick.className = "flex-1 py-2.5 rounded-xl font-bold text-sm transition bg-[#e63946] text-white shadow";
+        btnDel.className = "flex-1 py-2.5 rounded-xl font-bold text-sm transition text-neutral-400 hover:text-white";
+        banner.innerHTML = '<span>🛍️ <strong>Abholung im Lokal:</strong> Pleysteinplatz 402, 8462 Gamlitz (ca. 15–20 Min.)</span><span class="text-emerald-400 font-semibold shrink-0 ml-2">0,00 € Liefergebühr</span>';
+      }
+    }
+
+    // Extras Modal öffnen
+    function openItemModal(id) {
+      selectedModalItem = menuItems.find(i => i.id === id);
+      document.getElementById("modalItemName").textContent = selectedModalItem.name;
+      document.getElementById("modalItemDesc").textContent = selectedModalItem.desc;
+      document.getElementById("modalItemNote").value = "";
+
+      const optBox = document.getElementById("modalOptionsContainer");
+      if (selectedModalItem.type === "pizza") {
+        optBox.innerHTML = `
+          <div>
+            <label class="block text-xs font-bold text-neutral-300 mb-1.5">🍕 Größe wählen:</label>
+            <div class="space-y-1.5">
+              <label class="flex justify-between items-center p-2.5 rounded-xl bg-[#111111] border border-neutral-700 cursor-pointer text-xs">
+                <span><input type="radio" name="pizzaSize" value="0" data-label="Normal (33cm)" checked onchange="updateModalLivePrice()" class="accent-[#e63946] mr-2">Normal (Ø 33cm)</span>
+                <span>Standard</span>
+              </label>
+              <label class="flex justify-between items-center p-2.5 rounded-xl bg-[#111111] border border-neutral-700 cursor-pointer text-xs">
+                <span><input type="radio" name="pizzaSize" value="4.50" data-label="Familienpizza (45cm)" onchange="updateModalLivePrice()" class="accent-[#e63946] mr-2">Familienpizza (Ø 45cm)</span>
+                <span class="text-[#ffb703] font-bold">+ 4,50 €</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-neutral-300 mb-1.5">➕ Extras hinzufügen:</label>
+            <div class="space-y-1.5 text-xs">
+              <label class="flex justify-between items-center p-2.5 rounded-xl bg-[#111111] border border-neutral-700 cursor-pointer">
+                <span><input type="checkbox" class="extra-chk accent-[#e63946] mr-2" value="1.50" data-label="+ Extra Käse" onchange="updateModalLivePrice()">Extra Mozzarella</span>
+                <span class="text-[#ffb703]">+ 1,50 €</span>
+              </label>
+              <label class="flex justify-between items-center p-2.5 rounded-xl bg-[#111111] border border-neutral-700 cursor-pointer">
+                <span><input type="checkbox" class="extra-chk accent-[#e63946] mr-2" value="1.00" data-label="+ Knoblauchrand" onchange="updateModalLivePrice()">Knoblauchrand</span>
+                <span class="text-[#ffb703]">+ 1,00 €</span>
+              </label>
+              <label class="flex justify-between items-center p-2.5 rounded-xl bg-[#111111] border border-neutral-700 cursor-pointer">
+                <span><input type="checkbox" class="extra-chk accent-[#e63946] mr-2" value="1.80" data-label="+ Scharfe Pfefferoni" onchange="updateModalLivePrice()">Scharfe Pfefferoni</span>
+                <span class="text-[#ffb703]">+ 1,80 €</span>
+              </label>
+            </div>
+          </div>
+        `;
+      } else if (selectedModalItem.type === "kebap") {
+        optBox.innerHTML = `
+          <div>
+            <label class="block text-xs font-bold text-neutral-300 mb-1.5">🥣 Wunschsauce wählen:</label>
+            <select id="kebapSauce" class="w-full bg-[#111111] border border-neutral-700 rounded-xl px-3 py-2.5 text-xs text-white">
+              <option value="Knoblauchsauce">Knoblauchsauce (Hausgemacht)</option>
+              <option value="Cocktailsauce">Cocktailsauce (Mild)</option>
+              <option value="Scharfe Sauce">Scharfe Sauce</option>
+              <option value="Gemischte Sauce">Gemischt (Knoblauch & Scharf)</option>
+              <option value="Ohne Sauce">Ohne Sauce</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-neutral-300 mb-1.5">⚙️ Sonderwünsche:</label>
+            <div class="space-y-1.5 text-xs">
+              <label class="flex justify-between items-center p-2.5 rounded-xl bg-[#111111] border border-neutral-700 cursor-pointer">
+                <span><input type="checkbox" class="extra-chk accent-[#e63946] mr-2" value="0" data-label="OHNE Zwiebeln" onchange="updateModalLivePrice()">Ohne Zwiebeln</span>
+                <span class="text-neutral-400">0,00 €</span>
+              </label>
+              <label class="flex justify-between items-center p-2.5 rounded-xl bg-[#111111] border border-neutral-700 cursor-pointer">
+                <span><input type="checkbox" class="extra-chk accent-[#e63946] mr-2" value="1.00" data-label="+ Schafskäse" onchange="updateModalLivePrice()">Mit Schafskäse</span>
+                <span class="text-[#ffb703]">+ 1,00 €</span>
+              </label>
+              <label class="flex justify-between items-center p-2.5 rounded-xl bg-[#111111] border border-neutral-700 cursor-pointer">
+                <span><input type="checkbox" class="extra-chk accent-[#e63946] mr-2" value="2.00" data-label="+ Extra Fleisch" onchange="updateModalLivePrice()">Extra Portion Fleisch</span>
+                <span class="text-[#ffb703]">+ 2,00 €</span>
+              </label>
+            </div>
+          </div>
+        `;
+      } else {
+        optBox.innerHTML = "";
+      }
+
+      updateModalLivePrice();
+      document.getElementById("itemModal").classList.remove("hidden");
+    }
+
+    function updateModalLivePrice() {
+      if (!selectedModalItem) return;
+      let total = selectedModalItem.price;
+      const sizeRadio = document.querySelector('input[name="pizzaSize"]:checked');
+      if (sizeRadio) total += parseFloat(sizeRadio.value);
+      document.querySelectorAll(".extra-chk:checked").forEach(chk => {
+        total += parseFloat(chk.value);
+      });
+      document.getElementById("modalLivePrice").textContent = formatPrice(total);
+    }
+
+    function closeItemModal() {
+      document.getElementById("itemModal").classList.add("hidden");
+    }
+
+    function confirmAddToCart() {
+      let unitPrice = selectedModalItem.price;
+      let extrasList = [];
+
+      const sizeRadio = document.querySelector('input[name="pizzaSize"]:checked');
+      if (sizeRadio) {
+        unitPrice += parseFloat(sizeRadio.value);
+        extrasList.push(sizeRadio.getAttribute("data-label"));
+      }
+      const sauceSel = document.getElementById("kebapSauce");
+      if (sauceSel) {
+        extrasList.push("Sauce: " + sauceSel.value);
+      }
+      document.querySelectorAll(".extra-chk:checked").forEach(chk => {
+        unitPrice += parseFloat(chk.value);
+        extrasList.push(chk.getAttribute("data-label"));
+      });
+
+      const note = document.getElementById("modalItemNote").value.trim();
+      if (note) extrasList.push("Anm.: " + note);
+
+      cart.push({
+        cartId: Date.now() + Math.random(),
+        name: selectedModalItem.name,
+        price: unitPrice,
+        extras: extrasList
+      });
+
+      closeItemModal();
+      updateFloatingCart();
+    }
+
+    function updateFloatingCart() {
+      const bar = document.getElementById("floatingCartBar");
+      if (cart.length === 0) {
+        bar.classList.add("hidden");
+        return;
+      }
+      bar.classList.remove("hidden");
+      document.getElementById("cartCountBadge").textContent = cart.length;
+      const sub = cart.reduce((acc, i) => acc + i.price, 0);
+      document.getElementById("cartTotalBadge").textContent = formatPrice(sub);
+    }
+
+    function removeCartItem(cartId) {
+      cart = cart.filter(c => c.cartId !== cartId);
+      updateFloatingCart();
+      if (cart.length === 0) {
+        closeCheckoutModal();
+      } else {
+        renderCheckoutModal();
+      }
+    }
+
+    function openCheckoutModal() {
+      document.getElementById("checkoutErrorMsg").classList.add("hidden");
+      renderCheckoutModal();
+      document.getElementById("checkoutModal").classList.remove("hidden");
+    }
+
+    function closeCheckoutModal() {
+      document.getElementById("checkoutModal").classList.add("hidden");
+    }
+
+    function setTip(val, mode) {
+      tipValue = val;
+      tipMode = mode;
+      document.querySelectorAll(".tip-btn").forEach(b => {
+        b.className = "tip-btn py-2 rounded-xl text-xs font-bold bg-neutral-800 text-neutral-300";
+      });
+      document.getElementById("tip_" + mode).className = "tip-btn py-2 rounded-xl text-xs font-bold bg-[#e63946] text-white";
+      renderCheckoutModal();
+    }
+
+    function renderCheckoutModal() {
+      const list = document.getElementById("cartItemsList");
+      list.innerHTML = cart.map(item => `
+        <div class="py-2.5 flex justify-between items-start gap-2">
+          <div>
+            <p class="text-sm font-bold">${item.name}</p>
+            ${item.extras.length ? `<p class="text-xs text-neutral-400">${item.extras.join(" • ")}</p>` : ''}
+            <p class="text-xs font-bold text-[#ffb703] mt-0.5">${formatPrice(item.price)}</p>
+          </div>
+          <button onclick="removeCartItem(${item.cartId})" class="text-xs text-red-400 hover:text-red-300 px-2 py-1 bg-neutral-800 rounded-lg">Löschen</button>
+        </div>
+      `).join("");
+
+      const delFields = document.getElementById("deliveryAddressFields");
+      const pickFields = document.getElementById("pickupTimeFields");
+      const title = document.getElementById("checkoutFormTitle");
+      const rowDel = document.getElementById("rowDeliveryFee");
+
+      if (orderMode === "delivery") {
+        title.textContent = "🛵 Lieferadresse & Kontakt";
+        delFields.classList.remove("hidden");
+        pickFields.classList.add("hidden");
+        rowDel.classList.remove("hidden");
+      } else {
+        title.textContent = "🛍️ Abholung im Lokal (8462 Gamlitz)";
+        delFields.classList.add("hidden");
+        pickFields.classList.remove("hidden");
+        rowDel.classList.add("hidden");
+      }
+
+      validateZipLive();
+    }
+
+    function validateZipLive() {
+      const subtotal = cart.reduce((acc, i) => acc + i.price, 0);
+      let calculatedTip = tipMode === "pct10" ? subtotal * 0.10 : tipValue;
+      let deliveryFee = 0;
+      const btn = document.getElementById("finalOrderBtn");
+      const zipBox = document.getElementById("zipValidationBox");
+
+      if (orderMode === "delivery") {
+        const zip = document.getElementById("custZip").value.trim();
+        const cityInput = document.getElementById("custCity");
+
+        if (zip.length < 4) {
+          zipBox.className = "p-3 rounded-xl text-xs font-semibold bg-neutral-900 border border-neutral-700 text-neutral-400";
+          zipBox.innerHTML = "ℹ️ Bitte gib deine 4-stellige Postleitzahl ein (Gültig: <strong>8462, 8461, 8472, 8430</strong>).";
+          btn.disabled = true;
+        } else if (DELIVERY_ZONES[zip]) {
+          const zone = DELIVERY_ZONES[zip];
+          deliveryFee = zone.fee;
+          if (!cityInput.value) cityInput.value = zone.name;
+
+          if (subtotal < zone.mbw) {
+            const diff = zone.mbw - subtotal;
+            zipBox.className = "p-3 rounded-xl text-xs font-bold bg-amber-950/60 border border-amber-600 text-amber-300";
+            zipBox.innerHTML = `⚠️ Lieferung nach ${zip} ${zone.name} möglich, aber es fehlen noch <strong>${formatPrice(diff)}</strong> bis zum Mindestbestellwert (${formatPrice(zone.mbw)}).`;
+            btn.disabled = true;
+          } else {
+            zipBox.className = "p-3 rounded-xl text-xs font-bold bg-emerald-950/60 border border-emerald-600 text-emerald-300";
+            zipBox.innerHTML = `✅ Wir liefern nach ${zip} ${zone.name}! (Mindestbestellwert erreicht • Liefergebühr: ${formatPrice(zone.fee)})`;
+            btn.disabled = false;
+          }
+        } else {
+          zipBox.className = "p-3 rounded-xl text-xs font-bold bg-red-950/80 border-2 border-red-500 text-red-200";
+          zipBox.innerHTML = `❌ Leider außerhalb unseres Liefergebiets (${zip})! Wir liefern aktuell nach 8462 Gamlitz, 8461 Ehrenhausen, 8472 Straß und 8430 Leibnitz. Bitte wähle oben <strong>„Abholung im Lokal“</strong> aus.`;
+          btn.disabled = true;
+        }
+      } else {
+        btn.disabled = false;
+      }
+
+      const total = subtotal + deliveryFee + calculatedTip;
+      document.getElementById("sumSubtotal").textContent = formatPrice(subtotal);
+      document.getElementById("sumDelivery").textContent = formatPrice(deliveryFee);
+      document.getElementById("sumTip").textContent = formatPrice(calculatedTip);
+      document.getElementById("sumTotal").textContent = formatPrice(total);
+    }
+
+    // Bestellung absenden (Mit Format-Prüfung, Doppelklick-Sperre & Echtzeit-Übertragung an Handy 2)
+    async function submitOrder() {
+      if (isSubmitting || cart.length === 0) return;
+
+      const name = document.getElementById("custName").value.trim();
+      const phone = document.getElementById("custPhone").value.trim();
+      const email = document.getElementById("custEmail").value.trim();
+      const street = document.getElementById("custStreet").value.trim();
+      const zip = document.getElementById("custZip").value.trim();
+      const city = document.getElementById("custCity").value.trim();
+      const consent = document.getElementById("legalConsent").checked;
+      const errBox = document.getElementById("checkoutErrorMsg");
+      const btn = document.getElementById("finalOrderBtn");
+
+      // Strenge Format-Prüfung für Name, Telefon und E-Mail
+      const digitsOnlyPhone = phone.replace(/[^0-9]/g, "");
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+      if (name.length < 2) {
+        errBox.textContent = "⚠️ Bitte gib deinen vollständigen Vor- und Nachnamen ein.";
+        errBox.classList.remove("hidden");
+        return;
+      }
+      if (digitsOnlyPhone.length < 8 || digitsOnlyPhone.length > 15) {
+        errBox.textContent = "⚠️ Bitte gib eine gültige Telefonnummer ein (mindestens 8 Ziffern, z.B. 0664 1234567).";
+        errBox.classList.remove("hidden");
+        return;
+      }
+      if (!emailRegex.test(email)) {
+        errBox.textContent = "⚠️ Bitte gib eine gültige E-Mail-Adresse für die Bestellbestätigung ein (z.B. name@mail.at).";
+        errBox.classList.remove("hidden");
+        return;
+      }
+      if (orderMode === "delivery" && (!street || !zip || !city)) {
+        errBox.textContent = "⚠️ Bitte fülle deine vollständige Lieferadresse (Straße, PLZ, Ort) aus.";
+        errBox.classList.remove("hidden");
+        return;
+      }
+      if (!consent) {
+        errBox.textContent = "⚠️ Bitte bestätige kurz die Datenschutzbestimmungen & AGB.";
+        errBox.classList.remove("hidden");
+        return;
+      }
+
+      errBox.classList.add("hidden");
+
+      // DOPPELKLICK-SCHUTZ & SERVER-ÜBERTRAGUNG
+      isSubmitting = true;
+      btn.disabled = true;
+      const originalBtnText = btn.textContent;
+      btn.textContent = "⏳ Wird an die Küche übertragen...";
+
+      const payMethod = document.querySelector('input[name="payMethod"]:checked').value;
+      const pickupTime = document.getElementById("pickupTimeSelect").value;
+      const totalText = document.getElementById("sumTotal").textContent;
+      const tipText = document.getElementById("sumTip").textContent;
+
+      const newOrder = {
+        id: Math.floor(100 + Math.random() * 900),
+        time: new Date().toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" }),
+        mode: orderMode === "delivery" ? "🛵 LIEFERUNG" : "🛍️ ABHOLUNG",
+        customer: name,
+        phone: phone,
+        email: email,
+        address: orderMode === "delivery" ? `${street}, ${zip} ${city}` : `Abholung im Lokal (${pickupTime})`,
+        payment: payMethod,
+        tip: tipText,
+        total: totalText,
+        items: [...cart],
+        status: "pending",
+        eta: null,
+        rejectReason: null
+      };
+
+      activeCustomerOrderId = newOrder.id;
+      orders.unshift(newOrder);
+
+      // Sende Bestellung in Echtzeit an Handy 2 (Küchen-Tablet)
+      await broadcastSyncEvent("NEW_ORDER", newOrder);
+
+      // WARENKORB KOMPLETT LEEREN & ZURÜCK ZUR STARTSEITE
+      cart = [];
+      tipValue = 0;
+      tipMode = "none";
+      isSubmitting = false;
+      btn.textContent = originalBtnText;
+      updateFloatingCart();
+      closeCheckoutModal();
+      updateKitchenUI();
+      checkAndManageAlarmLoop();
+      updateCustomerLiveTracker(newOrder);
+    }
+
+    function updateCustomerLiveTracker(order) {
+      const box = document.getElementById("liveOrderStatus");
+      box.classList.remove("hidden");
+      document.getElementById("statusOrderNumber").textContent = `BESTELLUNG #${order.id} (${order.time} Uhr)`;
+      document.getElementById("statusOrderType").textContent = order.mode;
+
+      const head = document.getElementById("statusHeadline");
+      const sub = document.getElementById("statusSubtext");
+
+      if (order.status === "pending") {
+        box.className = "mb-5 p-4 rounded-2xl border-2 border-[#ffb703] bg-[#1a1a1a] shadow-xl";
+        head.className = "text-lg font-extrabold mb-1 text-[#ffb703]";
+        head.textContent = "⏳ Bestellung eingegangen – Warte auf Küche...";
+        sub.textContent = "Deine Bestellung klingelt jetzt live auf dem Küchen-Gerät! Sobald die Küche dort auf eine Minuten-Zahl tippt, springt diese Anzeige hier automatisch um.";
+      } else if (order.status === "accepted") {
+        box.className = "mb-5 p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-950/30 shadow-xl";
+        head.className = "text-lg font-extrabold mb-1 text-emerald-400";
+        head.textContent = `✅ Bestätigt! Dein Essen ist in ca. ${order.eta} Minuten bereit.`;
+        sub.textContent = `Die Küche von Bro's Pizza & Kebap hat deine Bestellung angenommen und bereitet sie frisch zu.`;
+      } else if (order.status === "rejected") {
+        box.className = "mb-5 p-4 rounded-2xl border-2 border-red-500 bg-red-950/40 shadow-xl";
+        head.className = "text-lg font-extrabold mb-1 text-red-400";
+        head.textContent = `❌ Bestellung leider abgelehnt / storniert`;
+        sub.textContent = `Grund der Küche: "${order.rejectReason}". (Bei Online-Zahlung erfolgt eine automatische Rückerstattung über Stripe).`;
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // ==================== KÜCHEN-ANSICHT LOGIK ====================
+    function toggleView() {
+      const cust = document.getElementById("customerView");
+      const kit = document.getElementById("kitchenView");
+      const btn = document.getElementById("viewToggleBtn");
+
+      if (kit.classList.contains("hidden")) {
+        cust.classList.add("hidden");
+        kit.classList.remove("hidden");
+        btn.innerHTML = "📱 Zur Kunden-App";
+        updateKitchenUI();
+      } else {
+        kit.classList.add("hidden");
+        cust.classList.remove("hidden");
+        const pendingCount = orders.filter(o => o.status === "pending").length;
+        btn.innerHTML = `👨‍🍳 Küche (<span id="kitchenBadge">${pendingCount}</span>)`;
+      }
+    }
+
+    function switchKitchenTab(tab) {
+      const ordList = document.getElementById("kitchenOrdersList");
+      const menuMgr = document.getElementById("kitchenMenuManager");
+      const tOrd = document.getElementById("kTabOrders");
+      const tMenu = document.getElementById("kTabMenu");
+
+      if (tab === "orders") {
+        ordList.classList.remove("hidden");
+        menuMgr.classList.add("hidden");
+        tOrd.className = "px-3.5 py-2 rounded-xl text-xs font-bold bg-[#e63946] text-white";
+        tMenu.className = "px-3.5 py-2 rounded-xl text-xs font-bold bg-neutral-800 text-neutral-300";
+      } else {
+        ordList.classList.add("hidden");
+        menuMgr.classList.remove("hidden");
+        tMenu.className = "px-3.5 py-2 rounded-xl text-xs font-bold bg-[#e63946] text-white";
+        tOrd.className = "px-3.5 py-2 rounded-xl text-xs font-bold bg-neutral-800 text-neutral-300";
+        renderKitchenMenuManager();
+      }
+    }
+
+    function updateKitchenUI() {
+      const pendingCount = orders.filter(o => o.status === "pending").length;
+      const badge = document.getElementById("kitchenBadge");
+      if (badge) badge.textContent = pendingCount;
+      document.getElementById("kTabCount").textContent = pendingCount;
+
+      const list = document.getElementById("kitchenOrdersList");
+      if (orders.length === 0) {
+        list.innerHTML = `
+          <div class="bg-[#1a1a1a] border border-neutral-800 rounded-2xl p-8 text-center text-neutral-400 text-sm">
+            📡 <strong>Bereit für Live-Bestellungen!</strong><br>
+            <span class="text-xs text-neutral-500">Gib jetzt auf deinem anderen Handy eine Bestellung auf – sie erscheint innerhalb von 1 Sekunde hier auf dem Bildschirm.</span>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = orders.map(o => `
+        <div class="bg-[#1a1a1a] border-2 ${o.status === 'pending' ? 'new-order-card' : 'border-neutral-800'} rounded-2xl p-5">
+          <div class="flex flex-wrap justify-between items-center gap-2 pb-3 border-b border-neutral-800">
+            <div class="flex items-center gap-2">
+              <span class="px-3 py-1 rounded-lg text-xs font-black ${o.mode.includes('LIEFERUNG') ? 'bg-[#e63946] text-white' : 'bg-amber-500 text-black'}">${o.mode}</span>
+              <span class="font-black text-base">#${o.id}</span>
+              <span class="text-xs text-neutral-400">(${o.time} Uhr)</span>
+            </div>
+            <span class="text-xs font-extrabold px-2.5 py-1 rounded bg-neutral-800 text-[#ffb703]">${o.payment} • ${o.total}</span>
+          </div>
+
+          <div class="my-3 text-xs space-y-1 bg-[#111111] p-3 rounded-xl border border-neutral-800">
+            <p>👤 <strong>Kunde:</strong> ${o.customer} • 📞 <a href="tel:${o.phone}" class="underline text-amber-400 font-bold">${o.phone}</a></p>
+            <p>✉️ <strong>E-Mail:</strong> ${o.email || '-'}</p>
+            <p>📍 <strong>Adresse / Info:</strong> ${o.address}</p>
+            <p>💛 <strong>Trinkgeld:</strong> ${o.tip}</p>
+          </div>
+
+          <div class="space-y-2 my-4">
+            ${o.items.map(it => `
+              <div class="bg-neutral-900 px-3.5 py-2.5 rounded-xl border-l-4 border-[#e63946]">
+                <p class="font-extrabold text-sm text-white">1x ${it.name}</p>
+                ${it.extras.length ? `<p class="text-xs font-bold text-[#ffb703] mt-0.5">👉 ${it.extras.join(" | ")}</p>` : ''}
+              </div>
+            `).join("")}
+          </div>
+
+          ${o.status === "pending" ? `
+            <div class="pt-3 border-t border-neutral-800">
+              <p class="text-xs font-bold text-neutral-300 mb-2">⏱️ Bestellung annehmen & Zubereitungszeit live an Kunden senden:</p>
+              <div class="grid grid-cols-4 gap-2 mb-2.5">
+                <button onclick="acceptOrder(${o.id}, 15)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-2.5 rounded-xl text-xs">✅ 15 Min</button>
+                <button onclick="acceptOrder(${o.id}, 30)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-2.5 rounded-xl text-xs">✅ 30 Min</button>
+                <button onclick="acceptOrder(${o.id}, 45)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-2.5 rounded-xl text-xs">✅ 45 Min</button>
+                <button onclick="acceptOrder(${o.id}, 60)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-2.5 rounded-xl text-xs">✅ 60 Min</button>
+              </div>
+              <div class="flex gap-2">
+                <input type="number" id="customMin_${o.id}" placeholder="Eigene Min. (z.B. 25)" class="flex-1 bg-[#111111] border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white" />
+                <button onclick="acceptOrderCustom(${o.id})" class="bg-emerald-700 px-4 py-2 rounded-xl text-xs font-bold">Bestätigen</button>
+                <button onclick="openRejectModal(${o.id})" class="bg-red-900/70 hover:bg-red-800 text-red-200 px-4 py-2 rounded-xl text-xs font-bold">❌ Ablehnen</button>
+              </div>
+            </div>
+          ` : o.status === "accepted" ? `
+            <div class="p-2.5 rounded-xl bg-emerald-950/50 border border-emerald-700 text-emerald-300 text-xs font-bold text-center">
+              ✅ Angenommen (Kunden-Handy live informiert: ca. ${o.eta} Min.)
+            </div>
+          ` : `
+            <div class="p-2.5 rounded-xl bg-red-950/50 border border-red-700 text-red-300 text-xs font-bold text-center">
+              ❌ Abgelehnt (${o.rejectReason})
+            </div>
+          `}
+        </div>
+      `).join("");
+    }
+
+    async function acceptOrder(orderId, minutes) {
+      const ord = orders.find(o => o.id === orderId);
+      if (!ord) return;
+      ord.status = "accepted";
+      ord.eta = minutes;
+      updateKitchenUI();
+      checkAndManageAlarmLoop();
+      if (activeCustomerOrderId === orderId) updateCustomerLiveTracker(ord);
+      await broadcastSyncEvent("ORDER_STATUS", { id: orderId, status: "accepted", eta: minutes, rejectReason: null });
+    }
+
+    function acceptOrderCustom(orderId) {
+      const val = document.getElementById("customMin_" + orderId).value;
+      const mins = parseInt(val) || 35;
+      acceptOrder(orderId, mins);
+    }
+
+    function openRejectModal(orderId) {
+      rejectingOrderId = orderId;
+      document.getElementById("rejectModal").classList.remove("hidden");
+    }
+
+    function closeRejectModal() {
+      document.getElementById("rejectModal").classList.add("hidden");
+    }
+
+    async function confirmRejectOrder(reason) {
+      const ord = orders.find(o => o.id === rejectingOrderId);
+      closeRejectModal();
+      if (ord) {
+        ord.status = "rejected";
+        ord.rejectReason = reason;
+        updateKitchenUI();
+        checkAndManageAlarmLoop();
+        if (activeCustomerOrderId === ord.id) updateCustomerLiveTracker(ord);
+        await broadcastSyncEvent("ORDER_STATUS", { id: ord.id, status: "rejected", eta: null, rejectReason: reason });
+      }
+    }
+
+    async function clearAllDemoOrders() {
+      orders = [];
+      updateKitchenUI();
+      checkAndManageAlarmLoop();
+      await broadcastSyncEvent("CLEAR_ALL", {});
+    }
+
+    // Küche: Speisekarte & Preise selbst ändern (synchronisiert live mit Kunden-Handy)
+    function renderKitchenMenuManager() {
+      const box = document.getElementById("kitchenMenuManager");
+      box.innerHTML = menuItems.map(item => `
+        <div class="bg-[#1a1a1a] border border-neutral-800 p-3.5 rounded-xl flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p class="font-bold text-sm">${item.name}</p>
+            <p class="text-xs text-neutral-400">${item.cat}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="number" step="0.10" id="priceEdit_${item.id}" value="${item.price.toFixed(2)}" onchange="updateItemPrice(${item.id})" class="w-20 bg-[#111111] border border-neutral-700 rounded-lg px-2 py-1.5 text-xs font-bold text-[#ffb703] text-right" />
+            <span class="text-xs text-neutral-400">€</span>
+            <button onclick="toggleItemAvailability(${item.id})" class="px-3 py-1.5 rounded-xl text-xs font-bold ${item.available ? 'bg-emerald-600 text-white' : 'bg-red-800 text-red-200'}">
+              ${item.available ? '🟢 Verfügbar' : '🔴 Ausverkauft'}
+            </button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function toggleItemAvailability(id) {
+      const item = menuItems.find(i => i.id === id);
+      if (item) {
+        item.available = !item.available;
+        renderKitchenMenuManager();
+        renderMenu();
+        await broadcastSyncEvent("MENU_UPDATE", { id: item.id, available: item.available, price: item.price });
+      }
+    }
+
+    async function updateItemPrice(id) {
+      const item = menuItems.find(i => i.id === id);
+      const val = parseFloat(document.getElementById("priceEdit_" + id).value);
+      if (item && !isNaN(val) && val > 0) {
+        item.price = val;
+        renderMenu();
+        await broadcastSyncEvent("MENU_UPDATE", { id: item.id, available: item.available, price: item.price });
+      }
+    }
+
+    // ==================== KUNDENKONTO LOGIK ====================
+    function openAccountModal() {
+      document.getElementById("accountModal").classList.remove("hidden");
+    }
+    function closeAccountModal() {
+      document.getElementById("accountModal").classList.add("hidden");
+    }
+    function loginDemoUser() {
+      document.getElementById("accountLoggedOutView").classList.add("hidden");
+      document.getElementById("accountLoggedInView").classList.remove("hidden");
+      document.getElementById("accountBtn").innerHTML = "👤 Markus S.";
+      saveProfileData();
+    }
+    function saveProfileData() {
+      document.getElementById("custName").value = document.getElementById("profName").value;
+      document.getElementById("custPhone").value = document.getElementById("profPhone").value;
+      document.getElementById("custEmail").value = document.getElementById("profEmail").value;
+      document.getElementById("custStreet").value = document.getElementById("profStreet").value;
+      document.getElementById("custZip").value = document.getElementById("profZip").value;
+      document.getElementById("custCity").value = document.getElementById("profCity").value;
+    }
+    function reorderFavorite() {
+      cart.push({ cartId: Date.now() + 1, name: "Pizza Bro's Spezial", price: 13.50, extras: ["Normal (33cm)"] });
+      cart.push({ cartId: Date.now() + 2, name: "Coca-Cola 0,5l", price: 2.80, extras: [] });
+      updateFloatingCart();
+      closeAccountModal();
+      openCheckoutModal();
+    }
+
+    // ==================== RECHTLICHE POPUPS (DSGVO / IMPRESSUM) ====================
+    function openLegalModal(type) {
+      const title = document.getElementById("legalModalTitle");
+      const content = document.getElementById("legalModalContent");
+      if (type === "impressum") {
+        title.textContent = "Impressum";
+        content.innerHTML = `
+          <p><strong>Bro's Pizza & Kebap</strong><br>Pleysteinplatz 402<br>8462 Gamlitz, Österreich</p>
+          <p><strong>Kontakt:</strong><br>Telefon: +43 664 8666503<br>Web: www.bros-pizza-kebap.at</p>
+          <p>Aufsichtsbehörde: Bezirkshauptmannschaft Leibnitz • Gewerbeordnung: www.ris.bka.gv.at</p>
+        `;
+      } else if (type === "datenschutz") {
+        title.textContent = "Datenschutzerklärung (DSGVO)";
+        content.innerHTML = `
+          <p><strong>1. Datenschutz auf einen Blick:</strong><br>Wir verarbeiten Ihre eingegebenen personenbezogenen Daten (Name, Lieferadresse, Telefonnummer, E-Mail-Adresse, Bestelldaten) ausschließlich zur Durchführung und Auslieferung Ihrer Bestellung gemäß Art. 6 Abs. 1 lit. b DSGVO.</p>
+          <p><strong>2. Keine externen Tracker / Schriftarten:</strong><br>Diese Bestell-App lädt keine externen Google Fonts nach und gibt keine Daten an Werbenetzwerke weiter. Die Datenbank-Verarbeitung erfolgt verschlüsselt (SSL) auf EU-Servern.</p>
+          <p><strong>3. Zahlungsabwicklung:</strong><br>Bei Auswahl einer Online-Zahlung erfolgt die Abwicklung direkt über den zertifizierten Zahlungsdienstleister Stripe Payments Europe Ltd.</p>
+          <p><strong>4. Ihre Rechte:</strong><br>Sie haben jederzeit das Recht auf Auskunft, Berichtigung und Löschung Ihrer gespeicherten Daten unter +43 664 8666503.</p>
+        `;
+      } else {
+        title.textContent = "Allgemeine Geschäftsbedingungen (AGB)";
+        content.innerHTML = `
+          <p><strong>1. Geltungsbereich:</strong> Für alle Online-Bestellungen bei Bro's Pizza & Kebap (8462 Gamlitz) gelten diese Bedingungen.</p>
+          <p><strong>2. Vertragsabschluss:</strong> Mit dem Klick auf „Jetzt kostenpflichtig bestellen“ geben Sie ein verbindliches Angebot ab. Der Vertrag kommt zustande, sobald die Küche Ihre Bestellung im System bestätigt.</p>
+          <p><strong>3. Symbolbilder & Preise:</strong> Alle Abbildungen der Speisen dienen als Symbolbilder. Alle Preise verstehen sich inkl. gesetzlicher österreichischer MwSt. Den offiziellen Registrierkassen-Beleg (RKSV) erhalten Sie zusammen mit Ihrer Bestellung.</p>
+        `;
+      }
+      document.getElementById("legalModal").classList.remove("hidden");
+    }
+    function closeLegalModal() {
+      document.getElementById("legalModal").classList.add("hidden");
+    }
+
+    // Start App & Live-Sync
+    renderMenu();
+    startRealtimeSync();
+  </script>
+</body>
+</html>
