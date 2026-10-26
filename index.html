@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Bro's Pizza & Kebap – Online Bestellen (8462 Gamlitz)</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Zuverlässiger WebSocket-Client für Echtzeit-Sync zwischen allen Geräten -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -22,10 +24,9 @@
   </style>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <meta name="apple-mobile-web-app-title" content="Bro's Pizza" />
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%23e63946'/><text x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' fill='white' font-family='system-ui, sans-serif' font-weight='900' font-size='44'>BRO'S</text><text x='50%25' y='76%25' dominant-baseline='central' text-anchor='middle' fill='%23ffb703' font-family='system-ui, sans-serif' font-weight='800' font-size='18'>PIZZA &amp; KEBAP</text></svg>" />
-
 </head>
 <body class="min-h-screen pb-28">
 
@@ -41,9 +42,9 @@
             Bro's Pizza & Kebap
             <span class="text-xs bg-[#ffb703]/20 text-[#ffb703] px-1.5 py-0.5 rounded font-semibold">★ 4.8</span>
           </h1>
-          <p class="text-xs text-emerald-400 flex items-center gap-1 mt-0.5">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            Geöffnet • 8462 Gamlitz (Live-Sync aktiv)
+          <p class="text-xs text-emerald-400 flex items-center gap-1.5 mt-0.5">
+            <span id="syncStatusDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span id="syncStatusText">Verbinde Live-Sync...</span>
           </p>
         </div>
       </div>
@@ -62,7 +63,7 @@
   <!-- ==================== KUNDEN-ANSICHT ==================== -->
   <main id="customerView" class="max-w-2xl mx-auto px-4 pt-4">
 
-    <!-- LIVE BESTELLSTATUS BANNER (Erscheint nach Bestellung & aktualisiert sich live über Handy 2) -->
+    <!-- LIVE BESTELLSTATUS BANNER -->
     <div id="liveOrderStatus" class="hidden mb-5 p-4 rounded-2xl border-2 border-[#ffb703] bg-[#1a1a1a] shadow-xl transition-all">
       <div class="flex items-center justify-between mb-2">
         <span class="text-xs font-bold uppercase tracking-wider text-[#ffb703]" id="statusOrderNumber">BESTELLUNG #101</span>
@@ -105,7 +106,7 @@
     <!-- SPEISEKARTE LISTE -->
     <div id="menuContainer" class="space-y-3"></div>
 
-    <!-- FOOTER MIT IMPRESSUM, DATENSCHUTZ & POWERED BY -->
+    <!-- FOOTER -->
     <footer class="mt-12 pt-6 border-t border-neutral-800 text-center text-xs text-neutral-500 space-y-2 pb-12">
       <p class="font-semibold text-neutral-300">Bro's Pizza & Kebap • Pleysteinplatz 402, 8462 Gamlitz</p>
       <p>Tel: +43 664 8666503 • Direktbestellung ohne Zwischenhändler</p>
@@ -126,11 +127,11 @@
   <!-- ==================== KÜCHEN-TABLET ANSICHT (HANDY 2) ==================== -->
   <section id="kitchenView" class="hidden max-w-3xl mx-auto px-4 pt-4">
 
-    <!-- WICHTIGER BUTTON FÜR IPHONE/TABLET AUTOPLAY-SPERRE & WAKE-LOCK -->
+    <!-- AUDIO & WAKE-LOCK AKTIVIERUNG -->
     <div id="audioUnlockBanner" class="mb-4 p-4 rounded-2xl bg-emerald-950/80 border-2 border-emerald-500 flex flex-wrap items-center justify-between gap-3">
       <div>
         <h3 class="text-sm font-black text-emerald-300">🔊 Schritt 1 für Küchen-Gerät: Alarm-Ton scharfschalten</h3>
-        <p class="text-xs text-emerald-200/80">Einmal antippen, damit dieses Gerät bei Bestellungen vom anderen Handy laut klingelt und das Display an bleibt.</p>
+        <p class="text-xs text-emerald-200/80">Einmal antippen, damit dieses Gerät bei Bestellungen vom anderen Handy/PC laut klingelt.</p>
       </div>
       <button onclick="activateKitchenAudio()" class="bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs px-4 py-2.5 rounded-xl shadow-lg">
         🔊 JETZT AKTIVIEREN (TEST-TON)
@@ -142,9 +143,9 @@
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-base font-black text-amber-400 flex items-center gap-2">
-            👨‍🍳 BRO'S KÜCHEN-TERMINAL (ECHTZEIT-SYNC)
+            👨‍🍳 BRO'S KÜCHEN-TERMINAL (LIVE-SYNC)
           </h2>
-          <p class="text-xs text-neutral-400">Bestellungen von anderen Handys ploppen hier sofort live auf.</p>
+          <p class="text-xs text-neutral-400">Bestellungen von anderen Geräten erscheinen hier verzögerungsfrei.</p>
         </div>
         <div class="flex gap-2">
           <button onclick="switchKitchenTab('orders')" id="kTabOrders" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#e63946] text-white">
@@ -156,25 +157,30 @@
         </div>
       </div>
 
-      <!-- KLINGELTON EINSTELLUNG FÜR DEN CHEF -->
+      <!-- KLINGELTON EINSTELLUNG & TEST-BESTELLUNG -->
       <div class="pt-3 border-t border-neutral-800 flex flex-wrap items-center justify-between gap-2 text-xs">
         <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-neutral-400 font-bold">🔔 Klingelton:</span>
+          <span class="text-neutral-400 font-bold">🔔 Ton:</span>
           <select id="soundSelector" onchange="testSelectedSound()" class="bg-[#111111] border border-neutral-700 rounded-lg px-2.5 py-1.5 text-white font-semibold">
-            <option value="bell">1. Klassische Ladenklingel (Empfohlen)</option>
-            <option value="buzzer">2. Lauter Küchen-Buzzer (Für laute Öfen)</option>
+            <option value="bell">1. Klassische Ladenklingel</option>
+            <option value="buzzer">2. Lauter Küchen-Buzzer</option>
             <option value="gong">3. Sanfter Doppel-Gong</option>
             <option value="siren">4. Intensiver Alarm-Piep</option>
-            <option value="custom" id="customSoundOption" disabled>5. Eigener Ton (MP3 geladen)</option>
+            <option value="custom" id="customSoundOption" disabled>5. Eigene MP3</option>
           </select>
           <label class="cursor-pointer bg-neutral-800 hover:bg-neutral-700 px-2.5 py-1.5 rounded-lg border border-neutral-700 font-semibold">
-            🎵 Eigene MP3 wählen
+            🎵 MP3
             <input type="file" accept="audio/*" onchange="uploadCustomSound(event)" class="hidden" />
           </label>
         </div>
-        <button onclick="clearAllDemoOrders()" class="text-neutral-500 hover:text-red-400 underline text-[11px]">
-          🔄 Demo-Liste leeren
-        </button>
+        <div class="flex items-center gap-3">
+          <button onclick="sendTestOrder()" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-lg font-bold text-[11px]">
+            📡 Test-Bestellung senden
+          </button>
+          <button onclick="clearAllDemoOrders()" class="text-neutral-500 hover:text-red-400 underline text-[11px]">
+            🔄 Liste leeren
+          </button>
+        </div>
       </div>
     </div>
 
@@ -244,7 +250,7 @@
         </div>
       </div>
 
-      <!-- Kundendaten & Format-Prüfung -->
+      <!-- Kundendaten -->
       <div class="space-y-3 my-4">
         <h4 class="text-xs font-bold uppercase tracking-wider text-[#ffb703]" id="checkoutFormTitle">🛵 Lieferadresse & Kontakt</h4>
 
@@ -261,7 +267,6 @@
             <input type="text" id="custZip" oninput="this.value = this.value.replace(/[^0-9]/g, ''); validateZipLive();" maxlength="4" placeholder="PLZ (8462) *" class="bg-[#111111] border-2 border-[#ffb703] rounded-xl px-3.5 py-2.5 text-sm font-bold text-white" />
             <input type="text" id="custCity" placeholder="Ort *" class="col-span-2 bg-[#111111] border border-neutral-700 rounded-xl px-3.5 py-2.5 text-sm text-white" />
           </div>
-          <!-- Live PLZ Status-Box -->
           <div id="zipValidationBox" class="p-3 rounded-xl text-xs font-semibold bg-neutral-900 border border-neutral-700 text-neutral-400">
             ℹ️ Bitte gib deine 4-stellige Postleitzahl ein (z.B. 8462 für Gamlitz oder 9999 zum Testen der Sperre).
           </div>
@@ -322,7 +327,7 @@
     </div>
   </div>
 
-  <!-- ==================== MODAL 3: MEIN KONTO (LOGIN & PROFIL) ==================== -->
+  <!-- ==================== MODAL 3: MEIN KONTO ==================== -->
   <div id="accountModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-[#1a1a1a] border border-neutral-800 w-full max-w-md rounded-3xl p-5 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center pb-3 border-b border-neutral-800 mb-4">
@@ -373,11 +378,11 @@
     </div>
   </div>
 
-  <!-- ==================== MODAL 4: STORNO-GRUND WÄHLEN (FÜR KÜCHE) ==================== -->
+  <!-- ==================== MODAL 4: STORNO-GRUND WÄHLEN ==================== -->
   <div id="rejectModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-[#1a1a1a] border border-neutral-800 w-full max-w-md rounded-3xl p-5">
       <h3 class="text-base font-extrabold text-red-400 mb-2">❌ Bestellung ablehnen / stornieren</h3>
-      <p class="text-xs text-neutral-400 mb-4">Bitte wähle den Grund. Das Kunden-Handy wird sofort live informiert (bei Online-Zahlung erfolgt eine automatische Rückerstattung).</p>
+      <p class="text-xs text-neutral-400 mb-4">Bitte wähle den Grund. Das Kunden-Gerät wird sofort live informiert.</p>
       <div class="space-y-2 mb-4">
         <button onclick="confirmRejectOrder('Artikel heute leider ausverkauft')" class="w-full text-left p-3 rounded-xl bg-[#111111] hover:bg-red-950/40 border border-neutral-700 text-xs font-bold">1. Artikel heute leider ausverkauft</button>
         <button onclick="confirmRejectOrder('Adresse liegt außerhalb unseres Liefergebiets')" class="w-full text-left p-3 rounded-xl bg-[#111111] hover:bg-red-950/40 border border-neutral-700 text-xs font-bold">2. Außerhalb unseres Liefergebiets</button>
@@ -388,7 +393,7 @@
     </div>
   </div>
 
-  <!-- ==================== MODAL 5: DATENSCHUTZ / IMPRESSUM / AGB ==================== -->
+  <!-- ==================== MODAL 5: RECHTLICHES ==================== -->
   <div id="legalModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-[#1a1a1a] border border-neutral-800 w-full max-w-lg rounded-3xl p-5 max-h-[85vh] overflow-y-auto">
       <div class="flex justify-between items-center pb-3 border-b border-neutral-800 mb-3">
@@ -399,13 +404,16 @@
     </div>
   </div>
 
-  <!-- ==================== JAVASCRIPT & 2-HANDY LIVE-SYNC LOGIK ==================== -->
+  <!-- ==================== JAVASCRIPT & MULTI-CHANNEL LIVE-SYNC ==================== -->
   <script>
-    // ECHTZEIT-KANAL FÜR DEINE 2 HANDYS (ntfy Pub/Sub - 0€ & ohne Login)
-    const SYNC_TOPIC = "bros_pizza_gamlitz_8462_live_sync_v1";
-    const SYNC_URL = "https://ntfy.sh/" + SYNC_TOPIC;
+    // Eindeutiger Kanal für Bro's Pizza Gamlitz
+    const TOPIC_KEY = "bros_pizza_gamlitz_8462_v2_sync";
+    const MQTT_TOPIC = "taporder/bros_gamlitz_8462/events";
+    const NTFY_URL = "https://ntfy.sh/" + TOPIC_KEY;
+
     let processedEvents = new Set();
-    let activeCustomerOrderId = null;
+    let mqttClients = [];
+    let activeCustomerOrderId = localStorage.getItem("bros_active_order_id") ? Number(localStorage.getItem("bros_active_order_id")) : null;
 
     // 1. Gültige Liefer-Postleitzahlen rund um 8462 Gamlitz
     const DELIVERY_ZONES = {
@@ -415,8 +423,8 @@
       "8430": { name: "Leibnitz", mbw: 25.00, fee: 3.50 }
     };
 
-    // 2. Speisekarte von Bro's Pizza & Kebap
-    let menuItems = [
+    // 2. Speisekarte
+    const defaultMenu = [
       { id: 1, cat: "Pizza", name: "Pizza Margherita", desc: "Hausgemachte Tomatensauce, 100% Mozzarella, Oregano", price: 9.50, available: true, type: "pizza" },
       { id: 2, cat: "Pizza", name: "Pizza Cardinale", desc: "Tomatensauce, Mozzarella, feiner Putenschinken", price: 10.90, available: true, type: "pizza" },
       { id: 3, cat: "Pizza", name: "Pizza Diavolo (Scharf)", desc: "Tomatensauce, Mozzarella, Salami, scharfe Pfefferoni", price: 11.50, available: true, type: "pizza" },
@@ -429,21 +437,32 @@
       { id: 10, cat: "Getränke", name: "Ayran 0,25l", desc: "Erfrischendes Joghurtgetränk", price: 2.20, available: true, type: "simple" }
     ];
 
+    let menuItems = JSON.parse(localStorage.getItem("bros_menu_v2") || "null") || defaultMenu;
+    let orders = JSON.parse(localStorage.getItem("bros_orders_v2") || "[]");
     let currentCategory = "Alle";
     let orderMode = "delivery";
     let cart = [];
     let selectedModalItem = null;
     let tipValue = 0;
     let tipMode = "none";
-    let orders = [];
     let rejectingOrderId = null;
     let isSubmitting = false;
 
-    // Audio & Endlos-Alarm Variablen für das Küchen-Tablet
+    // Audio & Endlos-Alarm Variablen
     let audioCtx = null;
     let alarmInterval = null;
     let customAudioUrl = null;
     let customAudioObj = null;
+
+    function saveStateToStorage() {
+      try {
+        localStorage.setItem("bros_orders_v2", JSON.stringify(orders));
+        localStorage.setItem("bros_menu_v2", JSON.stringify(menuItems));
+        if (activeCustomerOrderId) {
+          localStorage.setItem("bros_active_order_id", String(activeCustomerOrderId));
+        }
+      } catch (e) {}
+    }
 
     function initAudioContext() {
       if (!audioCtx) {
@@ -454,13 +473,12 @@
       }
     }
 
-    // Küchendienst-Button (Schaltet Audio + Bildschirm-Wachhalter auf Handy 2 frei)
     async function activateKitchenAudio() {
       initAudioContext();
       playSelectedToneOnce();
       const banner = document.getElementById("audioUnlockBanner");
       banner.className = "mb-4 p-3 rounded-2xl bg-neutral-900 border border-emerald-700/50 flex items-center justify-between";
-      banner.innerHTML = `<span class="text-xs text-emerald-400 font-bold">✅ Küchen-Alarm & Live-Empfang sind aktiv! (Lautstärke am Handy aufdrehen)</span>`;
+      banner.innerHTML = `<span class="text-xs text-emerald-400 font-bold">✅ Küchen-Alarm & Live-Empfang sind aktiv! (Lautstärke aufdrehen)</span>`;
       try {
         if ("wakeLock" in navigator) {
           await navigator.wakeLock.request("screen");
@@ -485,7 +503,6 @@
       playSelectedToneOnce();
     }
 
-    // Spielt den gewählten Klingelton 1x ab
     function playSelectedToneOnce() {
       const type = document.getElementById("soundSelector") ? document.getElementById("soundSelector").value : "bell";
       if (type === "custom" && customAudioObj) {
@@ -542,7 +559,6 @@
       } catch (e) {}
     }
 
-    // Prüft, ob offene Bestellungen da sind, und lässt das Küchen-Handy im Loop klingeln
     function checkAndManageAlarmLoop() {
       const hasPending = orders.some(o => o.status === "pending");
       if (hasPending) {
@@ -563,103 +579,206 @@
       }
     }
 
-    // ==================== CLOUD SYNC ZWISCHEN HANDY 1 & HANDY 2 ====================
+    // ==================== MULTI-CHANNEL LIVE-SYNC (WEBSOCKETS + NTFY + LOCAL) ====================
+    function setSyncIndicator(online) {
+      const dot = document.getElementById("syncStatusDot");
+      const txt = document.getElementById("syncStatusText");
+      if (online) {
+        dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+        txt.textContent = "Geöffnet • 8462 Gamlitz (Live-Sync verbunden)";
+      }
+    }
+
     async function broadcastSyncEvent(action, data) {
       const payload = {
-        eventId: Date.now() + "_" + Math.random().toString(36).substring(2, 7),
+        eventId: Date.now() + "_" + Math.random().toString(36).substring(2, 8),
         action: action,
         data: data
       };
       processedEvents.add(payload.eventId);
+      const jsonStr = JSON.stringify(payload);
+
+      // Kanal 1: Sofort über alle verbundenen WebSocket-Broker (EMQX & HiveMQ) senden
+      mqttClients.forEach(client => {
+        try {
+          if (client.connected) {
+            client.publish(MQTT_TOPIC, jsonStr, { qos: 1 });
+          }
+        } catch (e) {}
+      });
+
+      // Kanal 2: Gleichzeitig im selben Browser über Tabs hinweg synchronisieren
       try {
-        await fetch(SYNC_URL, {
+        localStorage.setItem("bros_sync_ping", jsonStr);
+      } catch (e) {}
+
+      // Kanal 3: Backup über ntfy.sh (als Base64 Text, damit ntfy kein JSON verschluckt)
+      try {
+        const b64 = btoa(encodeURIComponent(jsonStr));
+        await fetch(NTFY_URL, {
           method: "POST",
-          body: JSON.stringify(payload)
+          headers: { "Content-Type": "text/plain" },
+          body: b64
         });
-      } catch (err) {
-        console.warn("Sync-Warnung:", err);
+      } catch (e) {}
+    }
+
+    function processIncomingEventObject(msg) {
+      if (!msg || !msg.eventId || processedEvents.has(msg.eventId)) return;
+      processedEvents.add(msg.eventId);
+
+      if (msg.action === "NEW_ORDER") {
+        const incomingOrder = msg.data;
+        if (!orders.some(o => o.id === incomingOrder.id)) {
+          orders.unshift(incomingOrder);
+          saveStateToStorage();
+          updateKitchenUI();
+          checkAndManageAlarmLoop();
+        }
+      } else if (msg.action === "ORDER_STATUS") {
+        const { id, status, eta, rejectReason } = msg.data;
+        const ord = orders.find(o => o.id === id);
+        if (ord) {
+          ord.status = status;
+          ord.eta = eta;
+          ord.rejectReason = rejectReason;
+          saveStateToStorage();
+          updateKitchenUI();
+          checkAndManageAlarmLoop();
+        }
+        if (activeCustomerOrderId === id) {
+          updateCustomerLiveTracker({
+            id: id,
+            time: ord ? ord.time : "Gerade eben",
+            mode: ord ? ord.mode : "Bestellung",
+            address: ord ? ord.address : "",
+            status: status,
+            eta: eta,
+            rejectReason: rejectReason
+          });
+          playSelectedToneOnce();
+        }
+      } else if (msg.action === "MENU_UPDATE") {
+        const { id, available, price } = msg.data;
+        const item = menuItems.find(i => i.id === id);
+        if (item) {
+          item.available = available;
+          if (price !== undefined) item.price = price;
+          saveStateToStorage();
+          renderMenu();
+          renderKitchenMenuManager();
+        }
+      } else if (msg.action === "CLEAR_ALL") {
+        orders = [];
+        saveStateToStorage();
+        updateKitchenUI();
+        checkAndManageAlarmLoop();
+        document.getElementById("liveOrderStatus").classList.add("hidden");
       }
     }
 
-    function handleIncomingSyncPayload(rawString) {
+    function handleRawNtfyLine(rawString) {
       try {
         const outer = JSON.parse(rawString);
         if (outer.event !== "message" || !outer.message) return;
-        const msg = JSON.parse(outer.message);
-        if (!msg.eventId || processedEvents.has(msg.eventId)) return;
-        processedEvents.add(msg.eventId);
-
-        if (msg.action === "NEW_ORDER") {
-          const incomingOrder = msg.data;
-          if (!orders.some(o => o.id === incomingOrder.id)) {
-            orders.unshift(incomingOrder);
-            updateKitchenUI();
-            checkAndManageAlarmLoop();
-          }
-        } else if (msg.action === "ORDER_STATUS") {
-          const { id, status, eta, rejectReason } = msg.data;
-          const ord = orders.find(o => o.id === id);
-          if (ord) {
-            ord.status = status;
-            ord.eta = eta;
-            ord.rejectReason = rejectReason;
-            updateKitchenUI();
-            checkAndManageAlarmLoop();
-          }
-          if (activeCustomerOrderId === id) {
-            updateCustomerLiveTracker({
-              id: id,
-              time: ord ? ord.time : "Gerade eben",
-              mode: ord ? ord.mode : "Bestellung",
-              address: ord ? ord.address : "",
-              status: status,
-              eta: eta,
-              rejectReason: rejectReason
-            });
-            playSelectedToneOnce();
-          }
-        } else if (msg.action === "MENU_UPDATE") {
-          const { id, available, price } = msg.data;
-          const item = menuItems.find(i => i.id === id);
-          if (item) {
-            item.available = available;
-            if (price !== undefined) item.price = price;
-            renderMenu();
-            renderKitchenMenuManager();
-          }
-        } else if (msg.action === "CLEAR_ALL") {
-          orders = [];
-          updateKitchenUI();
-          checkAndManageAlarmLoop();
-          document.getElementById("liveOrderStatus").classList.add("hidden");
-        }
+        let decoded = outer.message;
+        try {
+          decoded = decodeURIComponent(atob(outer.message));
+        } catch (e) {}
+        const msg = JSON.parse(decoded);
+        processIncomingEventObject(msg);
       } catch (e) {}
     }
 
     function startRealtimeSync() {
-      // 1. Echtzeit-Stream (SSE)
+      // 1. WebSocket Echtzeit-Verbindung zu 2 unabhängigen globalen Brokern (0,1s Latenz, kein Rate-Limit)
+      const brokers = [
+        "wss://broker.emqx.io:8084/mqtt",
+        "wss://broker.hivemq.com:8884/mqtt"
+      ];
+
+      if (typeof mqtt !== "undefined") {
+        brokers.forEach(url => {
+          try {
+            const client = mqtt.connect(url, {
+              clientId: "bros_" + Math.random().toString(16).substring(2, 10),
+              clean: true,
+              connectTimeout: 4000,
+              reconnectPeriod: 2000
+            });
+            client.on("connect", () => {
+              setSyncIndicator(true);
+              client.subscribe(MQTT_TOPIC, { qos: 1 });
+            });
+            client.on("message", (topic, message) => {
+              try {
+                const parsed = JSON.parse(message.toString());
+                processIncomingEventObject(parsed);
+              } catch (e) {}
+            });
+            mqttClients.push(client);
+          } catch (e) {}
+        });
+      }
+
+      // 2. Tab-Sync im selben Browser
+      window.addEventListener("storage", (e) => {
+        if (e.key === "bros_sync_ping" && e.newValue) {
+          try {
+            processIncomingEventObject(JSON.parse(e.newValue));
+          } catch (err) {}
+        }
+      });
+
+      // 3. Ntfy SSE + Polling als sekundäres Backup
       try {
-        const sse = new EventSource(SYNC_URL + "/sse");
-        sse.onmessage = (e) => handleIncomingSyncPayload(e.data);
+        const sse = new EventSource(NTFY_URL + "/sse");
+        sse.onopen = () => setSyncIndicator(true);
+        sse.onmessage = (e) => handleRawNtfyLine(e.data);
       } catch (e) {}
 
-      // 2. Zuverlässiger Polling-Abgleich alle 2,5 Sekunden (falls WLAN wackelt oder CodePen-Iframe SSE blockt)
       setInterval(async () => {
         try {
-          const res = await fetch(SYNC_URL + "/json?poll=1&since=20m");
+          const res = await fetch(`${NTFY_URL}/json?poll=1&since=15m&_t=${Date.now()}`, { cache: "no-store" });
+          if (res.ok) setSyncIndicator(true);
           const text = await res.text();
           text.split("\n").forEach(line => {
-            if (line.trim()) handleIncomingSyncPayload(line);
+            if (line.trim()) handleRawNtfyLine(line);
           });
         } catch (e) {}
-      }, 2500);
+      }, 3500);
+    }
+
+    // Test-Button für die Küche
+    async function sendTestOrder() {
+      initAudioContext();
+      const testOrder = {
+        id: Math.floor(100 + Math.random() * 900),
+        time: new Date().toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" }),
+        mode: "🛵 LIEFERUNG",
+        customer: "Testkunde (Live-Check)",
+        phone: "0664 9999999",
+        email: "test@gamlitz.at",
+        address: "Pleysteinplatz 1, 8462 Gamlitz",
+        payment: "Barzahlung bei Übergabe",
+        tip: "2,00 €",
+        total: "17,50 €",
+        items: [{ cartId: 1, name: "Pizza Bro's Spezial", price: 13.50, extras: ["Normal (33cm)", "+ Knoblauchrand"] }],
+        status: "pending",
+        eta: null,
+        rejectReason: null
+      };
+      orders.unshift(testOrder);
+      saveStateToStorage();
+      updateKitchenUI();
+      checkAndManageAlarmLoop();
+      await broadcastSyncEvent("NEW_ORDER", testOrder);
     }
 
     function formatPrice(num) {
       return Number(num).toFixed(2).replace(".", ",") + " €";
     }
 
-    // Speisekarte rendern
     function renderMenu() {
       const container = document.getElementById("menuContainer");
       const filtered = currentCategory === "Alle" ? menuItems : menuItems.filter(i => i.cat === currentCategory);
@@ -708,7 +827,6 @@
       }
     }
 
-    // Extras Modal öffnen
     function openItemModal(id) {
       selectedModalItem = menuItems.find(i => i.id === id);
       document.getElementById("modalItemName").textContent = selectedModalItem.name;
@@ -955,7 +1073,6 @@
       document.getElementById("sumTotal").textContent = formatPrice(total);
     }
 
-    // Bestellung absenden (Mit Format-Prüfung, Doppelklick-Sperre & Echtzeit-Übertragung an Handy 2)
     async function submitOrder() {
       if (isSubmitting || cart.length === 0) return;
 
@@ -969,7 +1086,6 @@
       const errBox = document.getElementById("checkoutErrorMsg");
       const btn = document.getElementById("finalOrderBtn");
 
-      // Strenge Format-Prüfung für Name, Telefon und E-Mail
       const digitsOnlyPhone = phone.replace(/[^0-9]/g, "");
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -1000,12 +1116,10 @@
       }
 
       errBox.classList.add("hidden");
-
-      // DOPPELKLICK-SCHUTZ & SERVER-ÜBERTRAGUNG
       isSubmitting = true;
       btn.disabled = true;
       const originalBtnText = btn.textContent;
-      btn.textContent = "⏳ Wird an die Küche übertragen...";
+      btn.textContent = "⏳ Wird in Echtzeit übertragen...";
 
       const payMethod = document.querySelector('input[name="payMethod"]:checked').value;
       const pickupTime = document.getElementById("pickupTimeSelect").value;
@@ -1031,11 +1145,10 @@
 
       activeCustomerOrderId = newOrder.id;
       orders.unshift(newOrder);
+      saveStateToStorage();
 
-      // Sende Bestellung in Echtzeit an Handy 2 (Küchen-Tablet)
       await broadcastSyncEvent("NEW_ORDER", newOrder);
 
-      // WARENKORB KOMPLETT LEEREN & ZURÜCK ZUR STARTSEITE
       cart = [];
       tipValue = 0;
       tipMode = "none";
@@ -1126,7 +1239,7 @@
         list.innerHTML = `
           <div class="bg-[#1a1a1a] border border-neutral-800 rounded-2xl p-8 text-center text-neutral-400 text-sm">
             📡 <strong>Bereit für Live-Bestellungen!</strong><br>
-            <span class="text-xs text-neutral-500">Gib jetzt auf deinem anderen Handy eine Bestellung auf – sie erscheint innerhalb von 1 Sekunde hier auf dem Bildschirm.</span>
+            <span class="text-xs text-neutral-500">Gib jetzt auf deinem PC oder zweiten Handy eine Bestellung auf – oder klicke oben auf „📡 Test-Bestellung senden“.</span>
           </div>
         `;
         return;
@@ -1154,7 +1267,7 @@
             ${o.items.map(it => `
               <div class="bg-neutral-900 px-3.5 py-2.5 rounded-xl border-l-4 border-[#e63946]">
                 <p class="font-extrabold text-sm text-white">1x ${it.name}</p>
-                ${it.extras.length ? `<p class="text-xs font-bold text-[#ffb703] mt-0.5">👉 ${it.extras.join(" | ")}</p>` : ''}
+                ${it.extras && it.extras.length ? `<p class="text-xs font-bold text-[#ffb703] mt-0.5">👉 ${it.extras.join(" | ")}</p>` : ''}
               </div>
             `).join("")}
           </div>
@@ -1176,7 +1289,7 @@
             </div>
           ` : o.status === "accepted" ? `
             <div class="p-2.5 rounded-xl bg-emerald-950/50 border border-emerald-700 text-emerald-300 text-xs font-bold text-center">
-              ✅ Angenommen (Kunden-Handy live informiert: ca. ${o.eta} Min.)
+              ✅ Angenommen (Kunden-Gerät live informiert: ca. ${o.eta} Min.)
             </div>
           ` : `
             <div class="p-2.5 rounded-xl bg-red-950/50 border border-red-700 text-red-300 text-xs font-bold text-center">
@@ -1192,6 +1305,7 @@
       if (!ord) return;
       ord.status = "accepted";
       ord.eta = minutes;
+      saveStateToStorage();
       updateKitchenUI();
       checkAndManageAlarmLoop();
       if (activeCustomerOrderId === orderId) updateCustomerLiveTracker(ord);
@@ -1219,6 +1333,7 @@
       if (ord) {
         ord.status = "rejected";
         ord.rejectReason = reason;
+        saveStateToStorage();
         updateKitchenUI();
         checkAndManageAlarmLoop();
         if (activeCustomerOrderId === ord.id) updateCustomerLiveTracker(ord);
@@ -1228,12 +1343,12 @@
 
     async function clearAllDemoOrders() {
       orders = [];
+      saveStateToStorage();
       updateKitchenUI();
       checkAndManageAlarmLoop();
       await broadcastSyncEvent("CLEAR_ALL", {});
     }
 
-    // Küche: Speisekarte & Preise selbst ändern (synchronisiert live mit Kunden-Handy)
     function renderKitchenMenuManager() {
       const box = document.getElementById("kitchenMenuManager");
       box.innerHTML = menuItems.map(item => `
@@ -1257,6 +1372,7 @@
       const item = menuItems.find(i => i.id === id);
       if (item) {
         item.available = !item.available;
+        saveStateToStorage();
         renderKitchenMenuManager();
         renderMenu();
         await broadcastSyncEvent("MENU_UPDATE", { id: item.id, available: item.available, price: item.price });
@@ -1268,6 +1384,7 @@
       const val = parseFloat(document.getElementById("priceEdit_" + id).value);
       if (item && !isNaN(val) && val > 0) {
         item.price = val;
+        saveStateToStorage();
         renderMenu();
         await broadcastSyncEvent("MENU_UPDATE", { id: item.id, available: item.available, price: item.price });
       }
@@ -1302,7 +1419,7 @@
       openCheckoutModal();
     }
 
-    // ==================== RECHTLICHE POPUPS (DSGVO / IMPRESSUM) ====================
+    // ==================== RECHTLICHE POPUPS ====================
     function openLegalModal(type) {
       const title = document.getElementById("legalModalTitle");
       const content = document.getElementById("legalModalContent");
@@ -1337,6 +1454,11 @@
 
     // Start App & Live-Sync
     renderMenu();
+    updateKitchenUI();
+    if (activeCustomerOrderId) {
+      const existingOrd = orders.find(o => o.id === activeCustomerOrderId);
+      if (existingOrd) updateCustomerLiveTracker(existingOrd);
+    }
     startRealtimeSync();
   </script>
 </body>
